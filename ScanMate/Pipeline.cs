@@ -18,6 +18,7 @@ using ScanMate.Domain;
 using System.Drawing.Drawing2D;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading.Tasks;
 
 namespace ScanMate
 {
@@ -34,6 +35,8 @@ namespace ScanMate
         {
             private static int clusterDist = 20;
             private static int clusterSpac = 20;
+            private static int scalingFact = 1;
+            private static bool cropping = false;
             
             public static int ClustDist
             {
@@ -44,6 +47,16 @@ namespace ScanMate
             {
                 get { return clusterSpac; }
                 set { clusterSpac = value; }
+            }
+            public static int ScalingFact
+            {
+                get { return scalingFact; }
+                set { scalingFact = value; }
+            }
+            public static bool Cropping
+            {
+                get { return cropping; }
+                set { cropping = value; }
             }
 
         }
@@ -58,11 +71,6 @@ namespace ScanMate
         private void Pipeline_Load(object sender, EventArgs e)
         {
             string inputDir;
-            //if (currentInputFolder.Text != "")
-            //{
-            //    inputDir = currentInputFolder.Text;
-            //}
-            //else
             inputDir = "C:\\Users\\Yannick\\Documents\\Werk\\Scan programma\\ScanMate\\lab\\input";
             if(!System.IO.Directory.Exists(inputDir))
             {
@@ -80,6 +88,7 @@ namespace ScanMate
                 }
                 else inputDir = "C:\\Users\\Rob\\Pictures";
             }
+            currentInputFolder.Text = inputDir;
             
 
             var fileSystemWatcher = new FileSystemWatcher(@inputDir)
@@ -92,12 +101,90 @@ namespace ScanMate
             fileSystemWatcher.Created += new FileSystemEventHandler(OnFileCreated);
         }
 
-        private void OnFileCreated(object sender, FileSystemEventArgs e)
+        private static string CreateLocalCopy(string filePath)
         {
+            try
+            {
+                string localCopyPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + Path.GetExtension(filePath));
+
+                // Copy the file to a local directory
+                File.Copy(filePath, localCopyPath);
+
+                Console.WriteLine("Local copy created: " + localCopyPath);
+
+                return localCopyPath;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error creating local copy: " + ex.Message);
+                return null;
+            }
+        }
+
+        private Task AttemptToOpenAsync(string filepath)
+        {
+            return Task.Factory.StartNew(() =>
+            {
+                bool available = false;
+
+                while (!available)
+                {
+                    available = IsAvailable(filepath);
+                    Console.WriteLine($"IsAvailable: {available}");
+
+                    if (!available)
+                    {
+                        Thread.Sleep(100);
+                    }
+                }
+
+                return available;
+            });
+        }
+
+        private bool IsAvailable(string filepath)
+        {
+            bool result = false;
+
+            try
+            {
+                using (FileStream fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.None))
+                {
+                    result = true;
+                }
+            }
+            catch (FileNotFoundException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            return result;
+        }
+
+        //public class BackGround
+        //{
+        //    Bitmap backGround;
+        //    public Bitmap maxBackGround
+        //    {
+        //        get { return backGround; }
+        //        set { backGround = value; }
+        //    }
+        //}
+
+        private static Bitmap cropImage(Bitmap img, Rectangle cropArea)
+        {
+            Bitmap bmpImage = new Bitmap(img);
+            return bmpImage.Clone(cropArea, bmpImage.PixelFormat);
+        }
+
+        private async void OnFileCreated(object sender, FileSystemEventArgs e)
+        {
+
             sw.Restart();
-            //Console.WriteLine("This one works");
-            //Console.WriteLine(e.Name);
-            //Console.WriteLine(e.ChangeType);
             string imagePath = e.FullPath;
             inputFiles.AddToQ(imagePath);
             Console.WriteLine("{0} is queued.", e.FullPath);
@@ -113,148 +200,85 @@ namespace ScanMate
                 while (inputFiles.Inspect() != imagePath) Thread.Sleep(100);
                 try
                 {
-                    while (IsFileLocked(e.FullPath))
-                    {
-                        Thread.Sleep(100);
-                    }
-
+                    //string localCopyOfPath = CreateLocalCopy(e.FullPath);
+                    await AttemptToOpenAsync(imagePath);
                     lock (locker)
                     {
                         Bitmap incoming = new Bitmap(inputFiles.Process());
-                        Console.WriteLine("{0} is being processed.", e.FullPath);
-
-
-                        //string file = e.Name;
-                        //imageFileName.Text = file;
+                        if (Variables.Cropping)
+                        {
+                            int left = (int)((incoming.Width / 9.1) * 1.6);
+                            int right = incoming.Width - left;
+                            int top = (right - left) / 30;
+                            int bottom = top * 23;
+                            Rectangle cropArea = new Rectangle(left, top, right, bottom);
+                            incoming = cropImage(incoming, cropArea);
+                        }
+                        Console.WriteLine("{0} is being processed.", e.FullPath);// localCopyOfPath);
                         if (currentScan.Image != null) currentScan.Image = null;
 
-                        if (incoming.Size.Height <= 0 || incoming.Size.Width <= 0 ||
-                                incoming.Size.Height > 3000 || incoming.Size.Width > 3000) // dimension check
-                            MessageBox.Show("Error in image dimensions (have to be > 0 and <= 3000)");
-                        else
-                            currentScan.Invoke((Action)
-                            delegate ()
-                            {
-                                currentScan.Image = (Image)new Bitmap(e.FullPath);
-                                currPathText.Text = imagePath;
-                            });
-
+                        //if (incoming.Size.Height <= 0 || incoming.Size.Width <= 0 ||
+                        //        incoming.Size.Height > 3000 || incoming.Size.Width > 4000) // dimension check
+                        //    MessageBox.Show("Error in image dimensions (have to be > 0 and <= 4000w/3000h)");
+                        //else
+                        currentScan.Invoke((Action) delegate ()
+                        {
+                            currentScan.Image = (Image)new Bitmap(e.FullPath);
+                            currPathText.Text = imagePath;
+                        });
+                        Console.WriteLine("incom W factor {0}", incoming.Width);
+                        Console.WriteLine("incom H factor {0}", incoming.Height);
+                        Console.WriteLine("Scaling factor {0}", Variables.ScalingFact);
                         // processing step
-                        Bitmap resized = new Bitmap(incoming, new Size(incoming.Width / 2, incoming.Height / 2));
+                        Bitmap resized = new Bitmap(incoming, new Size(Convert.ToInt32(incoming.Width / Variables.ScalingFact), Convert.ToInt32(incoming.Height / Variables.ScalingFact)));
 
                         var stampsAndCoord = Apply.apply(resized);
                         List<Color[,]> processedStamps = stampsAndCoord.Item1;
                         List<Point> topLefts = stampsAndCoord.Item2;
+                        Console.WriteLine("{0} is done processing.", imagePath);//localCopyOfPath);
 
-                        Console.WriteLine("{0} is done processing.", e.FullPath);
-
-                        string outputDir = "";
-
-                        string directory = Directory.GetCurrentDirectory();
-
-                        if (currentOutputFolder.Text != "")
-                        {
-                            outputDir = currentOutputFolder.Text;
-                            if (System.IO.Directory.Exists(outputDir))
-                            {
-                                Directory.SetCurrentDirectory(@outputDir);
-                            }
-                            else MessageBox.Show("Folder specified not valid");
-                        }
-                        else if (System.IO.Directory.Exists("C:\\Users\\Rob\\Pictures\\uitgesneden"))
-                        {
-                            outputDir = "C:\\Users\\Rob\\Pictures\\uitgesneden";
-                            Directory.SetCurrentDirectory(@outputDir);
-                            currentOutputFolder.Text = outputDir;
-                        }
-                        else if (System.IO.Directory.Exists("C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden"))
-                        {
-                            outputDir = "C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden";
-                            Directory.SetCurrentDirectory(outputDir);
-                            currentOutputFolder.Text = outputDir;
-                        }
-                        else MessageBox.Show("No access to tried paths\n\'C:\\Users\\Rob\\Pictures\\uitgesneden\' and \'C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden\'");
-
-
+                        string outputDirectory = setOutputFolder();
+                        Bitmap totalScan = new Bitmap(incoming.Size.Width, incoming.Size.Height);
+                        
                         // check for largest height and largest width
 
-                        int width = 0;
-                        int height = 0;
+                        //int width = 0;
+                        //int height = 0;
 
-                        foreach(Color[,] stamp in processedStamps)
-                        {
-                            if (stamp.GetLength(0) > width) width = stamp.GetLength(0);
-                            if (stamp.GetLength(1) > height) height = stamp.GetLength(1);
-                        }
+                        //foreach(Color[,] stamp in processedStamps)
+                        //{
+                        //    if (stamp.GetLength(0) > width) width = stamp.GetLength(0);
+                        //    if (stamp.GetLength(1) > height) height = stamp.GetLength(1);
+                        //}
 
-                        directory = outputDir;// Directory.GetCurrentDirectory();
 
-                        //Bitmap outputImage;
-                        
-                        Bitmap totalScan = new Bitmap(incoming.Size.Width, incoming.Size.Height);
                         //Bitmap postBeeld = new Bitmap(Resource1.PBsmall);
                         //int dimX = width + width + 20 - (width % postBeeld.Width);
                         //int dimY = height + height + 20 - (height % postBeeld.Height);
+                        //BackGround bg = new BackGround() { maxBackGround = new System.Drawing.Bitmap(dimX, dimY) };
+
                         //Bitmap maxBackGround = new Bitmap(dimX, dimY);
 
-
-
-                        //pictureBox2.Invoke((Action)
-                        //    delegate ()
-                        //    {
-                        //        pictureBox2.Image = (Image)maxBackGround;
-                        //    });
-
-                        //Thread.Sleep(5000);
-
                         //using (TextureBrush brush = new TextureBrush(postBeeld, WrapMode.Tile))
-                        //using (Graphics g = Graphics.FromImage(maxBackGround))
+                        //using (Graphics g = Graphics.FromImage(bg.maxBackGround))
                         //{
                         //    // Do your painting in here
-                        //    g.FillRectangle(brush, 0, 0, maxBackGround.Width, maxBackGround.Height);
+                        //    g.FillRectangle(brush, 0, 0, bg.maxBackGround.Width, bg.maxBackGround.Height);
                         //}
 
-                        //RectangleF cloneRect = new RectangleF(0, 0, postBeeld.Width, postBeeld.Height);
-                        //System.Drawing.Imaging.PixelFormat format =
-                        //    postBeeld.PixelFormat;
-
-                        //ImageLayout.Tile;
-
-                        //for(int y = 0; y < dimY; y += postBeeld.Height)
-                        //{
-                        //    for(int x = 0; x < dimX; x += postBeeld.Width)
-                        //    {
-
-                        //        using (Graphics g = Graphics.FromImage(maxBackGround))
-                        //        {
-                        //            g.DrawImage(postBeeld, x, y);//, x + postBeeld.Width, y + postBeeld.Height);
-                        //        }
-
-                        //    }    
-                        //}
 
                         //pictureBox2.Invoke((Action)
                         //    delegate ()
                         //    {
-                        //        pictureBox2.Image = (Image)maxBackGround;
+                        //        pictureBox2.Image = (Image)bg.maxBackGround;
                         //    });
-
-                        //string fileLocation = string.Format(directory + "\\backgrond.jpg");
-                        //backGround.Save(fileLocation, ImageFormat.Jpeg);
-                        //Bitmap cloneBitmap = postBeeld.Clone(cloneRect, format);
-
-                        //// Draw the cloned portion of the Bitmap object.
-                        //e.Graphics.DrawImage(cloneBitmap, 0, 0);
-
 
                         for (int i = 0; i < processedStamps.Count; i++)
                         {
-                            //Color[,] displayImage = processedStamps[i];
                             int w = processedStamps[i].GetLength(0) + 20;
                             int h = processedStamps[i].GetLength(1) + 20;
-                            //if (pictureBox2.Image != null) pictureBox2.Image.Dispose();
-                            //outputImage = new Bitmap(w, h); // create new output image
-                            Bitmap saveOutput = new Bitmap(w, h);//CropImage(maxBackGround, new Rectangle(new Point(0, 0), new Size(w, h)));
+                            Bitmap saveOutput = new Bitmap(w, h);
+                            //CopyRegionIntoStamp(bg.maxBackGround, new Rectangle(0, 0, w - 20, h - 20), ref saveOutput, new Rectangle(0, 0, w, h));//new Bitmap(w, h);//CropImage(maxBackGround, new Rectangle(new Point(0, 0), new Size(w, h)));
 
                             // copy array to output Bitmap
                             for (int x = 0; x < w - 20; x++)             // loop over columns
@@ -272,22 +296,12 @@ namespace ScanMate
                                 }
 
                             //                         // display output image
-                            string fileLocation = string.Format(directory + "\\{0}-{1}.jpg", scanNr, i);
+                            string fileLocation = string.Format(outputDirectory + "\\{0}-{1}.jpg", scanNr, i);
                             saveOutput.Save(fileLocation, ImageFormat.Jpeg);
-                            //outputImage.Dispose();
                             saveOutput.Dispose();
-
-
-
-
                         }
-                        
-                        //maxBackGround.Dispose();
-                        //postBeeld.Dispose();
 
                         scanNr++;
-
-                        
 
                         sw.Stop();
                         Console.WriteLine("Runtime: {0} seconds", sw.Elapsed.TotalSeconds.ToString());
@@ -299,19 +313,6 @@ namespace ScanMate
                             pictureBox2.Image = totalScan;
                         }
                         else pictureBox2.Image = totalScan;
-                        //    pictureBox2.Invoke((Action)
-                        //        delegate ()
-                        //        {
-                        //            pictureBox2.Image.Dispose();
-                        //            pictureBox2.Image = null;
-                        //            pictureBox2.Image = (Image)totalScan;
-                        //        });
-                        //}
-                        //else pictureBox2.Image = (Image)totalScan;
-                        //totalScan.Dispose();
-                        //BackgroundImage.Dispose();
-                        //postBeeld.Dispose();
-                        //inputFiles.Dequeue();
                     }
                 }
                 catch(FileNotFoundException)
@@ -342,6 +343,42 @@ namespace ScanMate
         //    return (T)formatter.Deserialize(stream);
         //}
 
+        public static void CopyRegionIntoStamp(Bitmap srcBitmap, Rectangle srcRegion, ref Bitmap destBitmap, Rectangle destRegion)
+        {
+            using (Graphics grD = Graphics.FromImage(destBitmap))
+            {
+                grD.DrawImage(srcBitmap, destRegion, srcRegion, GraphicsUnit.Pixel);
+            }
+        }
+
+        private string setOutputFolder()
+        {
+            string outputDir = "";
+            if (currentOutputFolder.Text != "")
+            {
+                outputDir = currentOutputFolder.Text;
+                if (System.IO.Directory.Exists(outputDir))
+                {
+                    Directory.SetCurrentDirectory(@outputDir);
+                }
+                else MessageBox.Show("Folder specified not valid");
+            }
+            else if (System.IO.Directory.Exists("C:\\Users\\Rob\\Pictures\\uitgesneden"))
+            {
+                outputDir = "C:\\Users\\Rob\\Pictures\\uitgesneden";
+                Directory.SetCurrentDirectory(@outputDir);
+                currentOutputFolder.Text = outputDir;
+            }
+            else if (System.IO.Directory.Exists("C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden"))
+            {
+                outputDir = "C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden";
+                Directory.SetCurrentDirectory(outputDir);
+                currentOutputFolder.Text = outputDir;
+            }
+            else MessageBox.Show("No access to tried paths\n\'C:\\Users\\Rob\\Pictures\\uitgesneden\' and \'C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden\'");
+            return outputDir;
+        }
+
         private static Bitmap CropImage(Bitmap img, Rectangle cropArea)
         {
             Bitmap bmpImage = new Bitmap(img);
@@ -354,7 +391,7 @@ namespace ScanMate
 
             try
             {
-                stream = new FileInfo(file).Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                stream = new FileInfo(file).Open(FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
             }
             catch (FileNotFoundException err)
             {
@@ -430,6 +467,25 @@ namespace ScanMate
                 else MessageBox.Show("Please specify a number using { 0123456789 } only.");
             }
             else Variables.ClustSpac = 20;
+        }
+
+        private void okScaling_Click(object sender, EventArgs e)
+        {
+            if (setScaling.Text != "")
+            {
+                int number;
+                if (int.TryParse(setScaling.Text, out number))
+                {
+                    Variables.ScalingFact = int.Parse(setScaling.Text);
+                }
+                else MessageBox.Show("Please specify a number using { 0123456789 } only.");
+            }
+            else Variables.ScalingFact = 4;
+        }
+
+        private void okCropping_Click(object sender, EventArgs e)
+        {
+            Variables.Cropping = (cropComboBox.Items[cropComboBox.SelectedIndex].ToString() == "A4");
         }
     }
 

@@ -208,7 +208,7 @@ namespace ScanMate.Methods.Processing.Processing
                             regionId++;
                             label = regionId;
                             labelImage[u, v] = label;
-                            int spacing = (labelImage.GetLength(0) / 150 + labelImage.GetLength(1) / 150) / 2; // space between checkpoints
+                            int spacing = Math.Max((labelImage.GetLength(0) / 150 + labelImage.GetLength(1) / 150) / 2, 1); // space between checkpoints
                             Contour oc = traceOuterContour(u, v, label, spacing);
                             if (!hough)
                             {
