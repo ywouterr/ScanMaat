@@ -1,0 +1,16 @@
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Debug\ScanMate.exe.config
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Debug\ScanMate.exe
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Debug\ScanMate.pdb
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.csproj.AssemblyReference.cache
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.Properties.Resources.resources
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.csproj.GenerateResource.cache
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.csproj.CoreCompileInputs.cache
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.exe
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.pdb
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.Pipeline.resources
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.UserControl1.resources
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Debug\ScanMate.exe.manifest
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Debug\ScanMate.application
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.exe.manifest
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.application
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.Resource1.resources
