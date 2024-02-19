@@ -92,7 +92,7 @@
     </Compile>
     <Compile Include="Domain\Domain.cs" />
     <Compile Include="Methods\inputQueue.cs" />
-    <Compile Include="Methods\Processing\Apply.cs" />
+    <Compile Include="Methods\Processing\ImageToCutouts.cs" />
     <Compile Include="Methods\Processing\Preprocessing.cs" />
     <Compile Include="Methods\Processing\Processing\DeskewAndGroup.cs">
       <SubType>Form</SubType>

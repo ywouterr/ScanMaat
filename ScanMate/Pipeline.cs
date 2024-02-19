@@ -217,10 +217,6 @@ namespace ScanMate
                         Console.WriteLine("{0} is being processed.", e.FullPath);// localCopyOfPath);
                         if (currentScan.Image != null) currentScan.Image = null;
 
-                        //if (incoming.Size.Height <= 0 || incoming.Size.Width <= 0 ||
-                        //        incoming.Size.Height > 3000 || incoming.Size.Width > 4000) // dimension check
-                        //    MessageBox.Show("Error in image dimensions (have to be > 0 and <= 4000w/3000h)");
-                        //else
                         currentScan.Invoke((Action) delegate ()
                         {
                             currentScan.Image = (Image)new Bitmap(e.FullPath);
@@ -229,10 +225,11 @@ namespace ScanMate
                         Console.WriteLine("incom W factor {0}", incoming.Width);
                         Console.WriteLine("incom H factor {0}", incoming.Height);
                         Console.WriteLine("Scaling factor {0}", Variables.ScalingFact);
+
                         // processing step
                         Bitmap resized = new Bitmap(incoming, new Size(Convert.ToInt32(incoming.Width / Variables.ScalingFact), Convert.ToInt32(incoming.Height / Variables.ScalingFact)));
 
-                        var stampsAndCoord = Apply.apply(resized);
+                        var stampsAndCoord = ImageToCutouts.process(resized);
                         List<Color[,]> processedStamps = stampsAndCoord.Item1;
                         List<Point> topLefts = stampsAndCoord.Item2;
                         Console.WriteLine("{0} is done processing.", imagePath);//localCopyOfPath);
@@ -278,7 +275,6 @@ namespace ScanMate
                             int w = processedStamps[i].GetLength(0) + 20;
                             int h = processedStamps[i].GetLength(1) + 20;
                             Bitmap saveOutput = new Bitmap(w, h);
-                            //CopyRegionIntoStamp(bg.maxBackGround, new Rectangle(0, 0, w - 20, h - 20), ref saveOutput, new Rectangle(0, 0, w, h));//new Bitmap(w, h);//CropImage(maxBackGround, new Rectangle(new Point(0, 0), new Size(w, h)));
 
                             // copy array to output Bitmap
                             for (int x = 0; x < w - 20; x++)             // loop over columns
@@ -295,7 +291,7 @@ namespace ScanMate
                                     }
                                 }
 
-                            //                         // display output image
+                            // display output image
                             string fileLocation = string.Format(outputDirectory + "\\{0}-{1}.jpg", scanNr, i);
                             saveOutput.Save(fileLocation, ImageFormat.Jpeg);
                             saveOutput.Dispose();
@@ -480,12 +476,17 @@ namespace ScanMate
                 }
                 else MessageBox.Show("Please specify a number using { 0123456789 } only.");
             }
-            else Variables.ScalingFact = 4;
+            else Variables.ScalingFact = 1;
         }
 
         private void okCropping_Click(object sender, EventArgs e)
         {
-            Variables.Cropping = (cropComboBox.Items[cropComboBox.SelectedIndex].ToString() == "A4");
+            Variables.Cropping = (cropComboBox.Items[cropComboBox.SelectedIndex].ToString() != "A4");
+        }
+
+        private void currentInputFolder_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 

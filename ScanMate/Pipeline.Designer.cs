@@ -129,6 +129,7 @@ namespace ScanMate
             this.currentInputFolder.Size = new System.Drawing.Size(559, 26);
             this.currentInputFolder.TabIndex = 8;
             this.currentInputFolder.Text = "C:\\Users\\Yannick\\Documents\\Werk\\Scan programma\\ScanMate\\lab\\input";
+            this.currentInputFolder.TextChanged += new System.EventHandler(this.currentInputFolder_TextChanged);
             // 
             // outputFolderButton
             // 
