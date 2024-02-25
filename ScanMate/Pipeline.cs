@@ -101,26 +101,6 @@ namespace ScanMate
             fileSystemWatcher.Created += new FileSystemEventHandler(OnFileCreated);
         }
 
-        private static string CreateLocalCopy(string filePath)
-        {
-            try
-            {
-                string localCopyPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + Path.GetExtension(filePath));
-
-                // Copy the file to a local directory
-                File.Copy(filePath, localCopyPath);
-
-                Console.WriteLine("Local copy created: " + localCopyPath);
-
-                return localCopyPath;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error creating local copy: " + ex.Message);
-                return null;
-            }
-        }
-
         private Task AttemptToOpenAsync(string filepath)
         {
             return Task.Factory.StartNew(() =>
@@ -165,16 +145,6 @@ namespace ScanMate
             return result;
         }
 
-        //public class BackGround
-        //{
-        //    Bitmap backGround;
-        //    public Bitmap maxBackGround
-        //    {
-        //        get { return backGround; }
-        //        set { backGround = value; }
-        //    }
-        //}
-
         private static Bitmap cropImage(Bitmap img, Rectangle cropArea)
         {
             Bitmap bmpImage = new Bitmap(img);
@@ -183,7 +153,6 @@ namespace ScanMate
 
         private async void OnFileCreated(object sender, FileSystemEventArgs e)
         {
-
             sw.Restart();
             string imagePath = e.FullPath;
             inputFiles.AddToQ(imagePath);
@@ -232,44 +201,11 @@ namespace ScanMate
                         var stampsAndCoord = ImageToCutouts.process(resized);
                         List<Color[,]> processedStamps = stampsAndCoord.Item1;
                         List<Point> topLefts = stampsAndCoord.Item2;
-                        Console.WriteLine("{0} is done processing.", imagePath);//localCopyOfPath);
+                        Console.WriteLine("{0} is done processing.", imagePath);
 
                         string outputDirectory = setOutputFolder();
                         Bitmap totalScan = new Bitmap(incoming.Size.Width, incoming.Size.Height);
-                        
-                        // check for largest height and largest width
-
-                        //int width = 0;
-                        //int height = 0;
-
-                        //foreach(Color[,] stamp in processedStamps)
-                        //{
-                        //    if (stamp.GetLength(0) > width) width = stamp.GetLength(0);
-                        //    if (stamp.GetLength(1) > height) height = stamp.GetLength(1);
-                        //}
-
-
-                        //Bitmap postBeeld = new Bitmap(Resource1.PBsmall);
-                        //int dimX = width + width + 20 - (width % postBeeld.Width);
-                        //int dimY = height + height + 20 - (height % postBeeld.Height);
-                        //BackGround bg = new BackGround() { maxBackGround = new System.Drawing.Bitmap(dimX, dimY) };
-
-                        //Bitmap maxBackGround = new Bitmap(dimX, dimY);
-
-                        //using (TextureBrush brush = new TextureBrush(postBeeld, WrapMode.Tile))
-                        //using (Graphics g = Graphics.FromImage(bg.maxBackGround))
-                        //{
-                        //    // Do your painting in here
-                        //    g.FillRectangle(brush, 0, 0, bg.maxBackGround.Width, bg.maxBackGround.Height);
-                        //}
-
-
-                        //pictureBox2.Invoke((Action)
-                        //    delegate ()
-                        //    {
-                        //        pictureBox2.Image = (Image)bg.maxBackGround;
-                        //    });
-
+                
                         for (int i = 0; i < processedStamps.Count; i++)
                         {
                             int w = processedStamps[i].GetLength(0) + 20;
@@ -291,7 +227,7 @@ namespace ScanMate
                                     }
                                 }
 
-                            // display output image
+                            //save output image
                             string fileLocation = string.Format(outputDirectory + "\\{0}-{1}.jpg", scanNr, i);
                             saveOutput.Save(fileLocation, ImageFormat.Jpeg);
                             saveOutput.Dispose();
@@ -322,30 +258,6 @@ namespace ScanMate
                 
             }
         }
-        //public static T Clone<T>(T source)
-        //{
-        //    if (!typeof(T).IsSerializable)
-        //    {
-        //        throw new ArgumentException("The type must be serializable.", nameof(source));
-        //    }
-
-        //    // Don't serialize a null object, simply return the default for that object
-        //    if (ReferenceEquals(source, null)) return default;
-
-        //    using var Stream stream = new MemoryStream();
-        //    IFormatter formatter = new BinaryFormatter();
-        //    formatter.Serialize(stream, source);
-        //    stream.Seek(0, SeekOrigin.Begin);
-        //    return (T)formatter.Deserialize(stream);
-        //}
-
-        public static void CopyRegionIntoStamp(Bitmap srcBitmap, Rectangle srcRegion, ref Bitmap destBitmap, Rectangle destRegion)
-        {
-            using (Graphics grD = Graphics.FromImage(destBitmap))
-            {
-                grD.DrawImage(srcBitmap, destRegion, srcRegion, GraphicsUnit.Pixel);
-            }
-        }
 
         private string setOutputFolder()
         {
@@ -373,42 +285,6 @@ namespace ScanMate
             }
             else MessageBox.Show("No access to tried paths\n\'C:\\Users\\Rob\\Pictures\\uitgesneden\' and \'C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden\'");
             return outputDir;
-        }
-
-        private static Bitmap CropImage(Bitmap img, Rectangle cropArea)
-        {
-            Bitmap bmpImage = new Bitmap(img);
-            return img.Clone(cropArea, bmpImage.PixelFormat);
-        }
-
-        private static bool IsFileLocked(string file)
-        {
-            FileStream stream = null;
-
-            try
-            {
-                stream = new FileInfo(file).Open(FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
-            }
-            catch (FileNotFoundException err)
-            {
-                throw err;
-            }
-            catch (IOException)
-            {
-                //the file is unavailable because it is:  
-                //still being written to  
-                //or being processed by another thread  
-                //or does not exist (has already been processed)  
-                return true;
-            }
-            finally
-            {
-                if (stream != null)
-                    stream.Close();
-            }
-
-            //file is not locked  
-            return false;
         }
 
         private void inputFolderButton_Click(object sender, EventArgs e)

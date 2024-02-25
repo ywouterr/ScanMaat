@@ -14,41 +14,24 @@ namespace ScanMate
 
     public partial class Pipeline : Form
     {
-        //DeskewAndGroup form1 = new DeskewAndGroup(this);
-
-        //public DeskewAndGroup(Pipeline pipe)
-        //{
-
-        //}
-        //public DeskewAndGroup(Pipeline form)
-        //{
-        //    this.form = form;
-        //}
-        //public string ReadPixels()
-        //{
-        //    form.returnPixels();
-        //}
-
-
-        Color[,] colorResult;// = new Color[workingImage.GetLength(0), workingImage.GetLength(1)];
+        
+        Color[,] colorResult;
         List<Tuple<Contour, Color[,]>> adjustedStamps = new List<Tuple<Contour, Color[,]>>();
         List<List<int>> grouping = new List<List<int>>();
         List<Color[,]> groupedStamps = new List<Color[,]>();
         List<Contour> innerContours;    // used to select top HT candidates
         ImageSpecific htAid = new ImageSpecific();
 
-        public Tuple<List<Color[,]>,List<Point>> divAndConqRegions(List<Contour> outerContours, Color[,] oG_Image, sbyte[,] labelImage)//, byte shade)
+        public Tuple<List<Color[,]>,List<Point>> divAndConqRegions(List<Contour> outerContours, Color[,] oG_Image, sbyte[,] labelImage)
         {
+            int wOG, hOG;
+            wOG = oG_Image.GetLength(0);
+            hOG = oG_Image.GetLength(1);
+
             for (int i = 0; i < outerContours.Count; i++)
             {
-                int wOG, hOG;
-                wOG = oG_Image.GetLength(0);
-                hOG = oG_Image.GetLength(1);
-                colorResult = HT(Cont2Img(outerContours[i], wOG, hOG), wOG, hOG, outerContours[i], i, oG_Image, labelImage);//, shade);
-                //oldArr = andImages(oldArr, transferArr);
-                //transferArr = HT(Cont2Img(outerContours[i]), workingImage.GetLength(0), workingImage.GetLength(1), outerContours[i], i);
-                //oldArr = andImages(oldArr, transferArr);
                 adjustedStamps.Add(Tuple.Create(outerContours[i], colorResult));
+
                 // group close stamps together
                 grouping.Add(new List<int>());
                 grouping[i].Add(i);
@@ -81,9 +64,8 @@ namespace ScanMate
                     }
                 }
             }
-            // chain groups together
 
-            List<List<int>> clusters = grouping;
+            // unify stamps which indirectly link
 
             for (int i = 0; i < grouping.Count; i++)
             {
@@ -110,67 +92,90 @@ namespace ScanMate
             }
 
             List<int> doneStamps = new List<int>();
-            Color[,] framed = new Color[0, 0];
             List<Point> leftTopCoords = new List<Point>();
-            int w = 0;
-            int h = 0;
 
             foreach (List<int> l in grouping)
             {
                 if (!doneStamps.Contains(l[0]))
                 {
-                    int globalmiX = int.MaxValue;
-                    int globalmaX = 0;
-                    int globalmiY = int.MaxValue;
-                    int globalmaY = 0;
+
+                    List<int> indexToLabelId = new List<int>();
                     foreach (int n in l)
                     {
-                        if (outerContours[n].minX < globalmiX) globalmiX = outerContours[n].minX;
-                        if (outerContours[n].maxX > globalmaX) globalmaX = outerContours[n].maxX;
-                        if (outerContours[n].minY < globalmiY) globalmiY = outerContours[n].minY;
-                        if (outerContours[n].maxY > globalmaY) globalmaY = outerContours[n].maxY;
+                        indexToLabelId.Add(outerContours[n].id);
                     }
-                    int width = globalmaX - globalmiX;
-                    int height = globalmaY - globalmiY;
-                    w = width;
-                    h = height;
-                    framed = ResizeArray(framed, 0, 0);
-                    framed = ResizeArray(framed, width, height);
-                    //for (int y = 0; y < height; y++)
-                    //{
-                    //    for (int x = 0; x < width; x++)
-                    //    {
-                    //        framed[x, y] = Color.FromArgb(shade, shade, shade);
-                    //    }
-                    //}
-                    foreach (int n in l)
+                    if (l.Count > 1)
+                        //unify
                     {
-                        int yymin = adjustedStamps[n].Item1.minY;
-                        int yymax = adjustedStamps[n].Item1.maxY;
-                        int xxmin = adjustedStamps[n].Item1.minX;
-                        int xxmax = adjustedStamps[n].Item1.maxX;
+                        // in HT: calculate angle with dilated unification --> use the contour of the unification
+                        byte[,] dilatedGroup = unifyAndDilateGroup(labelImage, indexToLabelId);
 
-                        int stampH = adjustedStamps[n].Item2.GetLength(1);
-                        int stampW = adjustedStamps[n].Item2.GetLength(0);
+                        // find contour
+                        ImageSpecific imSp = new ImageSpecific();
+                        Tuple<List<Contour>, sbyte[,]> contsAndLabels = imSp.findObjects(dilatedGroup);
+                        List<Contour> unifiedOuterContour = contsAndLabels.Item1;
+                        sbyte[,] unifiedLabelArray = contsAndLabels.Item2;
 
-                        for (int yy = 0; yy < stampH; yy++)
-                        {
-                            for (int xx = 0; xx < stampW; xx++)
-                            {
-                                framed[xx + xxmin - globalmiX, yy + yymin - globalmiY] = adjustedStamps[n].Item2[xx, yy];
-                            }
-                        }
+                        // deskew using the labels
+                        Color[,] unifiedResult = HT(Cont2Image(unifiedOuterContour[0], wOG, hOG), wOG, hOG, unifiedOuterContour[0], indexToLabelId, oG_Image, labelImage);
+                        groupedStamps.Add(unifiedResult);
+                        leftTopCoords.Add(new Point(unifiedOuterContour[0].minX, unifiedOuterContour[0].minY));
+
+                    }
+                    else
+                        //single stamp
+                    { 
+                        Color[,] result = HT(Cont2Image(outerContours[l[0]], wOG, hOG), wOG, hOG, outerContours[l[0]], indexToLabelId, oG_Image, labelImage);
+                        groupedStamps.Add(result);
+                        leftTopCoords.Add(new Point(outerContours[l[0]].minX, outerContours[l[0]].minY));
                     }
                     doneStamps.AddRange(l);
-                    groupedStamps.Add(framed);
-                    leftTopCoords.Add(new Point(globalmiX, globalmiY));
                 }
             }
 
             return Tuple.Create(groupedStamps, leftTopCoords);
         }
 
-        public Color[,] HT(byte[,] stamp, int m, int n, Contour c, int nr, Color[,] colImage, sbyte[,] labelImage)//, byte shade)
+        byte[,] unifyAndDilateGroup(sbyte[,] labelImage, List<int> labels)
+        {
+            HashSet<int> labelsInImage = new HashSet<int>();
+            byte[,] dilatedGroup = new byte[labelImage.GetLength(0), labelImage.GetLength(1)];
+            for (int y = 0; y < labelImage.GetLength(1); y++)
+            {
+                for (int x = 0; x < labelImage.GetLength(0); x++)
+                {
+                    labelsInImage.Add(labelImage[x, y]);
+                    if (labels.Contains(labelImage[x, y]))
+                    {
+                        dilatedGroup[x, y] = 255;
+                    }
+                }
+            }
+
+            for (int grow = 0; grow < Variables.ClustDist; grow++)
+            {
+                Console.WriteLine(grow);
+                dilatedGroup = dilateImage(dilatedGroup);
+            }
+
+            return dilatedGroup;
+        }
+
+        Color[,] byteToColor(byte[,] input)
+        {
+            Color[,] output = new Color[input.GetLength(0)-2, input.GetLength(1)-2];
+            for (int i = 0; i < output.GetLength(0); i++)
+            {
+                for (int j = 0; j < output.GetLength(1); j++)
+                {
+                    if(input[i+1,j+1] == 255) output[i, j] = Color.FromArgb(255, 255, 255, 255);
+                }
+            }
+
+            return output;
+        }
+
+        public Color[,] HT(byte[,] stamp, int m, int n, Contour c, List<int> ids, Color[,] colImage, sbyte[,] labelImage)//, byte shade)
         {
             int x = stamp.GetLength(0) / 2;
             int y = stamp.GetLength(1) / 2;
@@ -291,12 +296,13 @@ namespace ScanMate
             weightedAvg /= divider;
             //if (weightedAvg > 45) weightedAvg -= 90;
 
+            // pass labelImageS in stead of labelImage
             if (weightedAvg > 2 || weightedAvg < -2)
-                return deskew(c, stamp, weightedAvg, nr, colImage, labelImage);//, shade);
-            else return deskew(c, stamp, 0, nr, colImage, labelImage);//, shade);// stamp;
+                return deskew(c, stamp, weightedAvg, ids, colImage, labelImage);//, shade);
+            else return deskew(c, stamp, 0, ids, colImage, labelImage);//, shade);// stamp;
         }
 
-        private byte[,] Cont2Img(Contour c, int w, int h)
+        private byte[,] Cont2Image(Contour c, int w, int h)
         {
             byte[,] frame = new byte[w, h];
             foreach (Point p in c.coordinates)
@@ -305,6 +311,58 @@ namespace ScanMate
             }
 
             return frame;
+        }
+
+        private Color[,] Label2Stamp(sbyte[,] labelImage, Color[,] originalImage, Contour c)
+        {
+            
+            int w = labelImage.GetLength(0);
+            int h = labelImage.GetLength(1);
+            int w2 = labelImage.GetLength(0);
+            int h2 = labelImage.GetLength(1);
+            Console.WriteLine("-----");
+            Console.WriteLine(w);
+            Console.WriteLine(h);
+            Console.WriteLine(w2);
+            Console.WriteLine(h2);
+
+            int minX = int.MaxValue;
+            int maxX = 0;
+            int minY = int.MaxValue;
+            int maxY = 0;
+
+            for (int x = 0; x < w; x++)
+            {
+                for (int y = 0; y < h; y++)
+                {
+                    if(labelImage[x, y] == c.id)
+                    {
+                        if (x > maxX) maxX = x - 1;
+                        if (x < minX) minX = x - 1;
+                        if (y > maxY) maxY = y - 1;
+                        if (y < minY) minY = y - 1;
+                    }
+                }
+            }
+
+            c.minX = minX;
+            c.maxX = maxX;
+            c.minY = minY;
+            c.maxY = maxY;
+            int width = maxX - minX;
+            int height = maxY - minY;
+
+            Color[,] framed = new Color[width, height];
+            for (int yy = 0; yy < height; yy++)
+            {
+                for (int xx = 0; xx < width; xx++)
+                {
+                    framed[xx, yy] = originalImage[minX + xx, minY + yy];
+                }
+            }
+
+            return framed;
+
         }
 
         public static T[,] ResizeArray<T>(T[,] original, int rows, int cols)
@@ -364,9 +422,8 @@ namespace ScanMate
 
             return resultImage;
         }
-        private Color[,] deskew(Contour c, byte[,] stamp, double angle, int i, Color[,] colorImage, sbyte[,] labelImage)//, byte shade)
+        private Color[,] deskew(Contour c, byte[,] stamp, double angle, List<int> ids, Color[,] colorImage, sbyte[,] labelImage)
         {
-            //sbyte[,] scannedStamps = htAid.getOG_Labels(stamp);
             int w = stamp.GetLength(0);
             int h = stamp.GetLength(1);
             Color[,] result = new Color[w, h];
@@ -397,8 +454,8 @@ namespace ScanMate
 
                     if (xinv >= 0 && Math.Ceiling(xinv) < w && yinv >= 0 && Math.Ceiling(yinv) < h)
                     {
-                        if (labelImage[(int)Math.Floor(xinv), (int)Math.Floor(yinv)] == c.id || labelImage[(int)Math.Ceiling(xinv), (int)Math.Floor(yinv)] == c.id ||
-                            labelImage[(int)Math.Floor(xinv), (int)Math.Ceiling(yinv)] == c.id || labelImage[(int)Math.Ceiling(xinv), (int)Math.Ceiling(yinv)] == c.id)
+                        if (ids.Contains(labelImage[(int)Math.Floor(xinv), (int)Math.Floor(yinv)]) || ids.Contains(labelImage[(int)Math.Ceiling(xinv), (int)Math.Floor(yinv)]) ||
+                            ids.Contains(labelImage[(int)Math.Floor(xinv), (int)Math.Ceiling(yinv)]) || ids.Contains(labelImage[(int)Math.Ceiling(xinv), (int)Math.Ceiling(yinv)]))
                         //if (c.body.Contains(new Point((int)Math.Floor(xinv), (int)Math.Floor(yinv))) || c.body.Contains(new Point((int)Math.Ceiling(xinv), (int)Math.Floor(yinv))) ||
                         //    c.body.Contains(new Point((int)Math.Floor(xinv), (int)Math.Ceiling(yinv))) || c.body.Contains(new Point((int)Math.Ceiling(xinv), (int)Math.Ceiling(yinv))) )
                         {
@@ -454,6 +511,7 @@ namespace ScanMate
 
             int width = maxX - minX;
             int height = maxY - minY;
+
 
             Color[,] framed = new Color[width, height];
             for (int yy = 0; yy < height; yy++)

@@ -7,7 +7,7 @@
     <framework targetVersion="4.7.2" profile="Full" supportedRuntime="4.0.30319" />
   </compatibleFrameworks>
   <dependency>
-    <dependentAssembly dependencyType="install" codebase="ScanMate.exe.manifest" size="4323">
+    <dependentAssembly dependencyType="install" codebase="Application Files\ScanMate_1_0_0_13\ScanMate.exe.manifest" size="4323">
       <assemblyIdentity name="ScanMate.exe" version="1.0.0.13" publicKeyToken="0000000000000000" language="neutral" processorArchitecture="msil" type="win32" />
       <hash>
         <dsig:Transforms>
