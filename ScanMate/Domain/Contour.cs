@@ -11,7 +11,7 @@ namespace ScanMate.Domain
     public partial class Contour : Form
     {
         public List<Point> coordinates { get; set; }
-        public sbyte id;
+        public int id;
         public Point centroid;
         public HashSet<Point> body;
         public List<Point> outlookCoords;
@@ -25,7 +25,7 @@ namespace ScanMate.Domain
         public int ogMinY;
         public int ogMaxY;
 
-        public Contour(sbyte label, int size)
+        public Contour(int label, int size)
         {
             coordinates = new List<Point>();
             this.id = label;

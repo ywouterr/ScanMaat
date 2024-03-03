@@ -7,6 +7,7 @@ using System.Drawing;
 using ScanMate.Domain;
 using ScanMate.Methods.Processing.Processing;
 using System.Windows.Forms;
+using System.Diagnostics;
 
 namespace ScanMate
 {
@@ -14,7 +15,7 @@ namespace ScanMate
 
     public partial class Pipeline : Form
     {
-        
+        static Stopwatch sw2 = new Stopwatch();
         Color[,] colorResult;
         List<Tuple<Contour, Color[,]>> adjustedStamps = new List<Tuple<Contour, Color[,]>>();
         List<List<int>> grouping = new List<List<int>>();
@@ -24,6 +25,7 @@ namespace ScanMate
 
         public Tuple<List<Color[,]>,List<Point>> divAndConqRegions(List<Contour> outerContours, Color[,] oG_Image, sbyte[,] labelImage)
         {
+            sw2.Start();
             int wOG, hOG;
             wOG = oG_Image.GetLength(0);
             hOG = oG_Image.GetLength(1);
@@ -91,6 +93,13 @@ namespace ScanMate
                 }
             }
 
+
+
+            Console.WriteLine("Link stamps: {0} seconds elapsed", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
+            sw2.Restart();
+
+            Console.WriteLine("Starting deskewing");
+
             List<int> doneStamps = new List<int>();
             List<Point> leftTopCoords = new List<Point>();
 
@@ -107,6 +116,8 @@ namespace ScanMate
                     if (l.Count > 1)
                         //unify
                     {
+                        Console.WriteLine("-----------------------");
+                        Console.WriteLine("Unifying");
                         // in HT: calculate angle with dilated unification --> use the contour of the unification
                         byte[,] dilatedGroup = unifyAndDilateGroup(labelImage, indexToLabelId);
 
@@ -116,18 +127,25 @@ namespace ScanMate
                         List<Contour> unifiedOuterContour = contsAndLabels.Item1;
                         sbyte[,] unifiedLabelArray = contsAndLabels.Item2;
 
+                        Console.WriteLine("Unifying {0} stamps took: {1} seconds", l.Count, ((double)sw2.ElapsedMilliseconds / 1000).ToString());
+                        sw2.Restart();
+
                         // deskew using the labels
-                        Color[,] unifiedResult = HT(Cont2Image(unifiedOuterContour[0], wOG, hOG), wOG, hOG, unifiedOuterContour[0], indexToLabelId, oG_Image, labelImage);
+                        Color[,] unifiedResult = HT(Cont2Image(unifiedOuterContour[0], wOG, hOG), wOG/4, hOG/4, unifiedOuterContour[0], indexToLabelId, oG_Image, labelImage);
                         groupedStamps.Add(unifiedResult);
                         leftTopCoords.Add(new Point(unifiedOuterContour[0].minX, unifiedOuterContour[0].minY));
+
 
                     }
                     else
                         //single stamp
-                    { 
-                        Color[,] result = HT(Cont2Image(outerContours[l[0]], wOG, hOG), wOG, hOG, outerContours[l[0]], indexToLabelId, oG_Image, labelImage);
+                    {
+                        Console.WriteLine("-----------------------");
+                        Console.WriteLine("Single stamp");
+                        Color[,] result = HT(Cont2Image(outerContours[l[0]], wOG, hOG), wOG/4, hOG/4, outerContours[l[0]], indexToLabelId, oG_Image, labelImage);
                         groupedStamps.Add(result);
                         leftTopCoords.Add(new Point(outerContours[l[0]].minX, outerContours[l[0]].minY));
+                        sw2.Restart();
                     }
                     doneStamps.AddRange(l);
                 }
@@ -152,11 +170,7 @@ namespace ScanMate
                 }
             }
 
-            for (int grow = 0; grow < Variables.ClustDist; grow++)
-            {
-                Console.WriteLine(grow);
-                dilatedGroup = dilateImage(dilatedGroup);
-            }
+            dilatedGroup = dilateImage(dilatedGroup, true);
 
             return dilatedGroup;
         }
@@ -177,6 +191,7 @@ namespace ScanMate
 
         public Color[,] HT(byte[,] stamp, int m, int n, Contour c, List<int> ids, Color[,] colImage, sbyte[,] labelImage)//, byte shade)
         {
+            Console.WriteLine("starting HT with {0} ids", ids.Count);
             int x = stamp.GetLength(0) / 2;
             int y = stamp.GetLength(1) / 2;
             double theta_step = Math.PI / m;
@@ -187,33 +202,68 @@ namespace ScanMate
 
             int highest = 0;
 
-            // fill HT array to discover salient outer lines of the object
-            for (int v = 0; v < stamp.GetLength(1); v++)
+            //fill HT array to discover salient outer lines of the object
+            foreach(Point p in c.coordinates)
             {
-                for (int u = 0; u < stamp.GetLength(0); u++)
+                int x_ref = p.X - x;
+                int y_ref = p.Y - y;
+            
+                for (int i = 0; i < m; i++)
                 {
-                    if (stamp[u, v] > 0)
+                    double t = theta_step * i;
+                    double r = x_ref * Math.Cos(t) + y_ref * Math.Sin(t);
+                    int j = j_map + (int)Math.Round(r / radial_step);
+                    if (j >= 0 && j < n)
                     {
-                        int x_ref = u - x;
-                        int y_ref = v - y;
-                        for (int i = 0; i < m; i++)
-                        {
-                            double t = theta_step * i;
-                            double r = x_ref * Math.Cos(t) + y_ref * Math.Sin(t);
-                            int j = j_map + (int)Math.Round(r / radial_step);
-                            if (j >= 0 && j < n)
-                            {
-                                accumulator[i, j]++;
-                                accumulator[i, Math.Max(0, j - 1)]++;
-                                accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)]++;
-                                if (accumulator[i, Math.Max(0, j - 1)] > highest) highest = accumulator[i, Math.Max(0, j - 1)];
-                                if (accumulator[i, j] > highest) highest = accumulator[i, j];
-                                if (accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)] > highest) highest = accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)];
-                            }
-                        }
+                        accumulator[i, j]++;
+                        accumulator[i, Math.Max(0, j - 1)]++;
+                        accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)]++;
+                        if (accumulator[i, Math.Max(0, j - 1)] > highest) highest = accumulator[i, Math.Max(0, j - 1)];
+                        if (accumulator[i, j] > highest) highest = accumulator[i, j];
+                        if (accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)] > highest) highest = accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)];
                     }
+
                 }
             }
+            //Define the number of threads to use
+            //int numThreads = Environment.ProcessorCount;
+            //Console.WriteLine("number of processors on machine {0}", numThreads);
+
+            //// Parallelize the outer loop using Parallel.For
+            //Parallel.For(0, stamp.GetLength(1), new ParallelOptions { MaxDegreeOfParallelism = numThreads }, v =>
+            //{
+            //    for (int u = 0; u < stamp.GetLength(0); u++)
+            //    {
+            //        if (stamp[u, v] > 0)
+            //        {
+            //            int x_ref = u - x;
+            //            int y_ref = v - y;
+            //            for (int i = 0; i < m; i++)
+            //            {
+            //                double t = theta_step * i;
+            //                double r = x_ref * Math.Cos(t) + y_ref * Math.Sin(t);
+            //                int j = j_map + (int)Math.Round(r / radial_step);
+            //                if (j >= 0 && j < n)
+            //                {
+            //                    // Ensure atomicity when incrementing accumulator values
+            //                    // to prevent race conditions
+            //                    lock (accumulator)
+            //                    {
+            //                        accumulator[i, j]++;
+            //                        accumulator[i, Math.Max(0, j - 1)]++;
+            //                        accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)]++;
+            //                        if (accumulator[i, Math.Max(0, j - 1)] > highest) highest = accumulator[i, Math.Max(0, j - 1)];
+            //                        if (accumulator[i, j] > highest) highest = accumulator[i, j];
+            //                        if (accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)] > highest) highest = accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)];
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
+            //});
+
+            Console.WriteLine("HT Array filled in {0} seconds", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
+            sw2.Restart();
 
             int[,] suppressed = findPeaks(accumulator);
 
@@ -230,8 +280,8 @@ namespace ScanMate
             {
                 for (int w = 0; w < accumulator.GetLength(1); w++)
                 {
-                    highscores.Add(Tuple.Create(accumulator[q, w], new Point(q, w))); // while scaling, add info to ranking list
                     accumByte[q, w] = (byte)(((double)accumulator[q, w] / highest) * 255);
+                    highscores.Add(Tuple.Create(accumulator[q, w], new Point(q, w))); // while scaling, add info to ranking list
                 }
             }
             // only keep significant points
@@ -243,15 +293,23 @@ namespace ScanMate
                     else accumByte[q, w] = 255;
                 }
             }
+            Console.WriteLine("{0} Filtering significant points", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
+            sw2.Restart();
 
             // grow points together to form regions
             for (int grow = 0; grow < 5; grow++)
             {
-                accumByte = dilateImage(accumByte);
+                accumByte = dilateImage(accumByte, false);
             }
+
+            Console.WriteLine("{0} HT dilation", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
+            sw2.Restart();
 
             // find the regions
             innerContours = htAid.getBestHTs(accumByte);
+
+            Console.WriteLine("{0} Inner contours to find regions", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
+            sw2.Restart();
 
             // sort highscores, biggest first
             highscores.Sort((s, p) => p.Item1.CompareTo(s.Item1));
@@ -276,11 +334,17 @@ namespace ScanMate
                 if (top3.Count > 3) break;
             }
 
+
+            Console.WriteLine("{0} Prominent point collection", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
+            sw2.Restart();
+
             List<double> offAngles = new List<double>();
             // modulo 90 to obtain the common divergence
             foreach (Point sp in top3)
             {
-                offAngles.Add((((double)sp.X / m) * 180) % 90);
+                double angle = (((double)sp.X / m) * 180) % 90;
+                Console.WriteLine("angle {0}", angle);
+                offAngles.Add(angle);
             }
 
             double weightedAvg = 0;
@@ -293,7 +357,12 @@ namespace ScanMate
                 divider += i;
             }
 
-            weightedAvg /= divider;
+            Console.WriteLine("{0} Calculating the average angle {1}", ((double)sw2.ElapsedMilliseconds / 1000).ToString(), weightedAvg);
+            sw2.Restart();
+
+            Console.WriteLine("weightedAvg {0} Divider {1}", weightedAvg, divider);
+
+            weightedAvg /= Math.Max(1, divider);
             //if (weightedAvg > 45) weightedAvg -= 90;
 
             // pass labelImageS in stead of labelImage
@@ -320,11 +389,6 @@ namespace ScanMate
             int h = labelImage.GetLength(1);
             int w2 = labelImage.GetLength(0);
             int h2 = labelImage.GetLength(1);
-            Console.WriteLine("-----");
-            Console.WriteLine(w);
-            Console.WriteLine(h);
-            Console.WriteLine(w2);
-            Console.WriteLine(h2);
 
             int minX = int.MaxValue;
             int maxX = 0;
@@ -401,9 +465,11 @@ namespace ScanMate
             return suppressed;
         }
 
-        private byte[,] dilateImage(byte[,] inputImage)
+        private byte[,] dilateImage(byte[,] inputImage, bool unification)
         {
             byte[,] resultImage = new byte[inputImage.GetLength(0), inputImage.GetLength(1)];
+            int expansion = 1;
+            if (unification) expansion = Variables.ClustDist;
 
             for (int i = 0; i < inputImage.GetLength(0); i++)
             {
@@ -411,11 +477,14 @@ namespace ScanMate
                 {
                     if (inputImage[i, j] == 255)
                     {
-                        resultImage[i, j] = 255;
-                        resultImage[i, Math.Max(0, j - 1)] = 255;
-                        resultImage[Math.Max(0, i - 1), j] = 255;
-                        resultImage[Math.Min(resultImage.GetLength(0) - 1, i + 1), j] = 255;
-                        resultImage[i, Math.Min(resultImage.GetLength(1) - 1, j + 1)] = 255;
+                        for (int e = 1; e <= expansion; e++)
+                        {
+                            resultImage[i, j] = 255;
+                            resultImage[i, Math.Max(0, j - e)] = 255;
+                            resultImage[Math.Max(0, i - e), j] = 255;
+                            resultImage[Math.Min(resultImage.GetLength(0) - 1, i + e), j] = 255;
+                            resultImage[i, Math.Min(resultImage.GetLength(1) - 1, j + e)] = 255;
+                        }
                     }
                 }
             }
@@ -424,6 +493,7 @@ namespace ScanMate
         }
         private Color[,] deskew(Contour c, byte[,] stamp, double angle, List<int> ids, Color[,] colorImage, sbyte[,] labelImage)
         {
+            Console.WriteLine("Starting deskewing for contour {0}", c.id);
             int w = stamp.GetLength(0);
             int h = stamp.GetLength(1);
             Color[,] result = new Color[w, h];
@@ -521,6 +591,9 @@ namespace ScanMate
                     framed[xx, yy] = result[minX + xx, minY + yy];
                 }
             }
+
+            Console.WriteLine("Deskewing took {0} seconds", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
+            sw2.Restart();
 
             return framed;
         }
