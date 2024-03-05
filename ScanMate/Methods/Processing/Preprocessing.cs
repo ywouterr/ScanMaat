@@ -8,6 +8,25 @@ using System.Drawing;
 using System.Diagnostics;
 namespace ScanMate.Methods.Processing
 {
+    class Mat<T>
+    {
+        public T[,] Data { get; set; }
+        public int Rows { get; }
+        public int Cols { get; }
+
+        public Mat(int rows, int cols)
+        {
+            Rows = rows;
+            Cols = cols;
+            Data = new T[rows, cols];
+        }
+
+        public T this[int row, int col]
+        {
+            get => Data[row, col];
+            set => Data[row, col] = value;
+        }
+    }
     public class Preprocessing
     {
         static Stopwatch sw3 = new Stopwatch();
@@ -22,7 +41,7 @@ namespace ScanMate.Methods.Processing
             processImage = adjustContrast(processImage);
             Console.WriteLine("{0} Contrast", ((double)sw3.ElapsedMilliseconds / 1000).ToString());
             sw3.Restart();
-            var medianImageAndShade = MedianFilter(processImage);
+            var medianImageAndShade = MedianFilterFast(processImage, 5);// MedianFilter2(processImage);
             Console.WriteLine("{0} Median", ((double)sw3.ElapsedMilliseconds / 1000).ToString());
             sw3.Restart();
             processImage = medianImageAndShade.Item1;
@@ -32,104 +51,225 @@ namespace ScanMate.Methods.Processing
             sw3.Stop();
             return /*Tuple.Create(*/processImage/*, shade)*/;
         }
-
-        static Tuple<byte[,], byte> MedianFilter(byte[,] inputImage)
+        private Tuple<byte[,], byte> MedianFilter(byte[,] inputImage)
         {
             int breadth = inputImage.GetLength(0);
             int height = inputImage.GetLength(1);
+            byte[,] tempImage = new byte[breadth + 2, height + 2];
 
-            // Median kernel radius
-            int r = 2;
+            int size = (breadth + height) / 2;
 
-            byte[,] tempImage = new byte[breadth + 2 * r, height + 2 * r];
+            bool isBig = size > 1300;
+
+            //standard
+            byte[] pixelVector = isBig ? new byte[25] : new byte[9];
+            int correction = isBig ? 2 : 1;
+
+            // Adjust temp image size if big
+            tempImage = isBig ? new byte[breadth + 4, height + 4] : new byte[breadth + 2, height + 2];
+
             byte[,] resultImage = new byte[breadth, height];
-
-            // Initialize kernel histogram H and column histograms h1...n
-            int[] kernelHistogram = new int[256];
-            int[,] columnHistograms = new int[height, 256];
-
             uint averageShade = 0;
 
-            // Copy input image to tempImage
-            for (int y = r; y < height + r; y++)
+            for (int y = 0; y < height; y++)
             {
-                for (int x = r; x < breadth + r; x++)
+                for (int x = 0; x < breadth; x++)
                 {
-                    tempImage[x, y] = inputImage[x - r, y - r];
+                    tempImage[x + correction, y + correction] = inputImage[x, y];
                 }
             }
 
-            // Initialize histograms for the first kernel
-            for (int i = 0; i < 2 * r + 1; i++)
+
+            for (int y = correction; y < height + correction; y++)
             {
-                for (int j = 0; j < 2 * r + 1; j++)
+                for (int x = correction; x < breadth + correction; x++)
                 {
-                    byte pixel = tempImage[i, j];
-                    columnHistograms[j, pixel]++;
-                    kernelHistogram[pixel]++;
-                }
-            }
-
-            // Process each pixel
-            for (int y = r; y < height + r; y++)
-            {
-                for (int x = r; x < breadth + r; x++)
-                {
-                    // Compute median
-                    resultImage[x - r, y - r] = (byte)GetMedian(kernelHistogram);
-
-                    // Update average shade
-                    averageShade += resultImage[x - r, y - r];
-
-                    // Update column histograms
-                    if (x - r - 1 >= r)
+                    int i = 0;
+                    for (int h = -correction; h <= correction; h++)
                     {
-                        byte oldPixel = tempImage[x - r - 1, y];
-                        columnHistograms[y - r, oldPixel]--;
-                    }
-
-                    if (x + r < breadth + r)
-                    {
-                        byte newPixel = tempImage[x + r, y];
-                        columnHistograms[y - r, newPixel]++;
-                    }
-
-                    // Update kernel histogram
-                    if (y - r - 1 >= r)
-                    {
-                        for (int k = 0; k < 256; k++)
+                        int offsetY = y + h;
+                        for (int b = -correction; b <= correction; b++)
                         {
-                            kernelHistogram[k] -= columnHistograms[y - r - 1, k];
+                            pixelVector[i] = tempImage[x + b, offsetY];
+                            i++;
                         }
                     }
 
-                    if (y + r < height + r)
-                    {
-                        for (int k = 0; k < 256; k++)
-                        {
-                            kernelHistogram[k] += columnHistograms[y + r, k];
-                        }
-                    }
+                    Array.Sort(pixelVector);
+                    byte middle = pixelVector[pixelVector.Length / 2];
+                    resultImage[x - correction, y - correction] = middle;
+                    averageShade += middle;
+
                 }
             }
 
-            // Compute average shade
-            averageShade /= (uint)(breadth * height);
-
+            averageShade = (uint)(averageShade / (breadth * height));
             return Tuple.Create(resultImage, (byte)averageShade);
         }
 
-        static int GetMedian(int[] histogram)
+        static Tuple<byte[,], byte> MedianFilterFast(byte[,] src, int kernelSize)
         {
-            int sum = 0;
-            for (int i = 0; i < 256; i++)
+            int rows = src.GetLength(0);
+            int cols = src.GetLength(1);
+            byte[,] dst = new byte[rows, cols];
+
+            // Ensure offset is at least 1 to avoid negative indexing
+            int offset = Math.Max(1, kernelSize / 2);
+            int threshold = kernelSize * kernelSize / 2;
+            uint sum = 0;
+
+            for (int i = 0; i < rows; i++)
             {
-                sum += histogram[i];
-                if (sum > 0.5)
-                    return i;
+                var histogram = new int[256];
+
+                for (int k = 0; k < 256; k++)
+                    histogram[k] = 0;
+
+                if (i - offset < 0)
+                {
+                    int mul = (i - offset) * -1;
+                    histogram[src[0, 0]] += mul * (kernelSize / 2);
+                }
+
+                if (i + offset >= rows)
+                {
+                    int mul = (i + offset - (rows - 1));
+                    histogram[src[rows - 1, 0]] += mul * (kernelSize / 2);
+                }
+
+                for (int di = Math.Max(0, i - offset); di <= Math.Min(rows - 1, i + offset); di++)
+                {
+                    histogram[src[di, 0]] += kernelSize / 2;
+
+                    for (int dj = 0; dj < kernelSize / 2; dj++)
+                    {
+                        if (di == 0 && i - offset < 0)
+                        {
+                            int mul = (i - offset) * -1;
+                            histogram[src[0, dj]] += mul;
+                        }
+
+                        if (di == rows - 1 && i + offset > rows - 1)
+                        {
+                            int mul = (i + offset - (rows - 1));
+                            histogram[src[rows - 1, dj]] += mul;
+                        }
+
+                        histogram[src[di, dj]]++;
+                    }
+                }
+
+                for (int j = 0; j < cols; j++)
+                {
+                    for (int di = i - offset; di <= i + offset; di++)
+                    {
+                        histogram[src[Math.Min(Math.Max(di, 0), rows - 1), Math.Min(Math.Max(j + offset, 0), cols - 1)]]++;
+                    }
+
+                    // Set median
+                    int count = 0;
+                    for (int k = 0; k < 256; k++)
+                    {
+                        count += histogram[k];
+                        if (count > threshold)
+                        {
+                            dst[i, j] = (byte)k;
+                            break;
+                        }
+                    }
+                    for (int di = i - offset; di <= i + offset; di++)
+                    {
+                        histogram[src[Math.Min(Math.Max(di, 0), rows - 1), Math.Min(Math.Max(j - offset, 0), cols - 1)]]--;
+                    }
+
+                    sum += src[i, j];
+                }
             }
-            return 0; // Should never reach here
+
+            byte averageByte = (byte)(sum / (rows * cols));
+            return Tuple.Create(dst, averageByte);
         }
+
+
+
+        //static Tuple<byte[,], byte> MedianFilter2(byte[,] inputImage)
+        //{
+        //    int m = inputImage.GetLength(0);
+        //    int n = inputImage.GetLength(1);
+        //    byte[,] result = new byte[m, n];
+
+        //    // Median kernel radius
+        //    int r = 2;
+
+        //    // Initialize kernel histogram H and column histograms h1...n
+        //    int[] kernelHistogram = new int[256];
+        //    int[,] columnHistograms = new int[n, 256];
+
+        //    // Initialization
+        //    for (int i = 0; i < r; i++)
+        //    {
+        //        for (int j = 0; j < n; j++)
+        //        {
+        //            byte pixel = inputImage[i, j];
+        //            columnHistograms[j, pixel]++;
+        //            kernelHistogram[pixel]++;
+        //        }
+        //    }
+
+        //    // Process each pixel
+        //    for (int i = 0; i < m; i++)
+        //    {
+        //        for (int j = 0; j < n; j++)
+        //        {
+        //            // Update column histograms
+        //            if (i - r >= 0)
+        //            {
+        //                byte oldPixel = inputImage[i - r, j];
+        //                columnHistograms[j, oldPixel]--;
+        //            }
+
+        //            if (i + r < m)
+        //            {
+        //                byte newPixel = inputImage[i + r, j];
+        //                columnHistograms[j, newPixel]++;
+        //            }
+
+        //            // Update kernel histogram
+        //            if (j - r - 1 >= 0)
+        //            {
+        //                for (int k = 0; k < 256; k++)
+        //                {
+        //                    kernelHistogram[k] -= columnHistograms[j - r - 1, k];
+        //                }
+        //            }
+
+        //            if (j + r < n)
+        //            {
+        //                for (int k = 0; k < 256; k++)
+        //                {
+        //                    kernelHistogram[k] += columnHistograms[j + r, k];
+        //                }
+        //            }
+
+        //            // Compute median
+        //            result[i, j] = (byte)GetMedian(kernelHistogram);
+        //        }
+        //    }
+
+        //    return Tuple.Create(result, (byte)255);
+        //}
+
+        //static int GetMedian(int[] histogram)
+        //{
+        //    int sum = 0;
+        //    for (int i = 0; i < 256; i++)
+        //    {
+        //        sum += histogram[i];
+        //        if (sum > 0.5)
+        //            return i;
+        //    }
+        //    return 0; // Should never reach here
+        //}
         private byte[,] convertToGrayscale(Color[,] inputImage)
         {
             // create temporary grayscale image of the same size as input, with a single channel
