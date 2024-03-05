@@ -559,18 +559,13 @@ namespace ScanMate
                             interPyb = (byte)((1 - (yinv - (int)yinv)) * interPx1b + (yinv - (int)yinv) * interPx2b);
 
                             result[x, y] = Color.FromArgb(interPyr, interPyg, interPyb);
-                            //(byte)(interPy * ((double)(i+1)/5));
 
                             if (x > maxX) maxX = x;
                             if (x < minX) minX = x;
                             if (y > maxY) maxY = y;
                             if (y < minY) minY = y;
                         }
-                        //else result[x, y] = Color.FromArgb(shade, shade, shade);
                     }
-                        //&& stampie[(int)Math.Floor(xinv), (int)Math.Floor(yinv)] != 0)//== c.id) 
-                        //result[x, y] = stampie[xinv, yinv];
-                    //}
                 }
             }
 
@@ -597,6 +592,8 @@ namespace ScanMate
 
             return framed;
         }
+
+
 
         public Tuple<double, double> convToSlopeInt(Point p, byte[,] stamp, int m, int n)
         {

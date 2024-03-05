@@ -37,7 +37,8 @@ namespace ScanMate
             private static int clusterSpac = 20;
             private static int scalingFact = 1;
             private static bool cropping = false;
-            
+            private static bool darkMode = false;
+
             public static int ClustDist
             {
                 get { return clusterDist; }
@@ -58,7 +59,11 @@ namespace ScanMate
                 get { return cropping; }
                 set { cropping = value; }
             }
-
+            public static bool ContrastCorrection
+            {
+                get { return darkMode; }
+                set { darkMode = value; }
+            }
         }
 
         
@@ -327,20 +332,6 @@ namespace ScanMate
             else Variables.ClustDist = 20;
         }
 
-        private void okSpacing_Click(object sender, EventArgs e)
-        {
-            if (setSpacing.Text != "")
-            {
-                int number;
-                if (int.TryParse(setSpacing.Text, out number))
-                {
-                    Variables.ClustSpac = int.Parse(setCluster.Text);
-                }
-                else MessageBox.Show("Please specify a number using { 0123456789 } only.");
-            }
-            else Variables.ClustSpac = 20;
-        }
-
         private void okScaling_Click(object sender, EventArgs e)
         {
             if (setScaling.Text != "")
@@ -363,6 +354,11 @@ namespace ScanMate
         private void currentInputFolder_TextChanged(object sender, EventArgs e)
         {
 
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            Variables.ContrastCorrection = !Variables.ContrastCorrection;
         }
     }
 

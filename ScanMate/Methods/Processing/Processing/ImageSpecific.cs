@@ -178,7 +178,8 @@ namespace ScanMate.Methods.Processing.Processing
                                 Contour oc = traceOuterContour(u, v, label, 100);
                                 if (!hough)
                                 {
-                                    if (oc.outlookCoords.Count > 10) outerContours.Add(oc);
+                                    int strictSelection = ScanMate.Pipeline.Variables.ContrastCorrection ? 5 : 0;
+                                    if (oc.outlookCoords.Count > 10 + strictSelection) outerContours.Add(oc);
                                 }
 
                                 if (hough) innerContours.Add(oc);

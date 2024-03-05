@@ -40,15 +40,13 @@ namespace ScanMate
             this.outputFolderButton = new System.Windows.Forms.Button();
             this.currentOutputFolder = new System.Windows.Forms.TextBox();
             this.okPixels = new System.Windows.Forms.Button();
-            this.label2 = new System.Windows.Forms.Label();
-            this.setSpacing = new System.Windows.Forms.TextBox();
-            this.okSpacing = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
             this.setScaling = new System.Windows.Forms.TextBox();
             this.okScaling = new System.Windows.Forms.Button();
             this.label4 = new System.Windows.Forms.Label();
             this.cropComboBox = new System.Windows.Forms.ComboBox();
             this.okCropping = new System.Windows.Forms.Button();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.currentScan)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.SuspendLayout();
@@ -162,36 +160,6 @@ namespace ScanMate
             this.okPixels.UseVisualStyleBackColor = true;
             this.okPixels.Click += new System.EventHandler(this.okPixels_Click);
             // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(38, 749);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(174, 20);
-            this.label2.TabIndex = 12;
-            this.label2.Text = "Spacing within clusters:";
-            // 
-            // setSpacing
-            // 
-            this.setSpacing.Location = new System.Drawing.Point(209, 745);
-            this.setSpacing.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.setSpacing.Name = "setSpacing";
-            this.setSpacing.Size = new System.Drawing.Size(112, 26);
-            this.setSpacing.TabIndex = 13;
-            this.setSpacing.Text = "20";
-            this.setSpacing.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            // 
-            // okSpacing
-            // 
-            this.okSpacing.Location = new System.Drawing.Point(328, 742);
-            this.okSpacing.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.okSpacing.Name = "okSpacing";
-            this.okSpacing.Size = new System.Drawing.Size(84, 32);
-            this.okSpacing.TabIndex = 14;
-            this.okSpacing.Text = "Ok";
-            this.okSpacing.UseVisualStyleBackColor = true;
-            this.okSpacing.Click += new System.EventHandler(this.okSpacing_Click);
-            // 
             // label3
             // 
             this.label3.AutoSize = true;
@@ -253,20 +221,31 @@ namespace ScanMate
             this.okCropping.UseVisualStyleBackColor = true;
             this.okCropping.Click += new System.EventHandler(this.okCropping_Click);
             // 
+            // checkBox1
+            // 
+            this.checkBox1.Appearance = System.Windows.Forms.Appearance.Button;
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Location = new System.Drawing.Point(209, 747);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(158, 30);
+            this.checkBox1.TabIndex = 21;
+            this.checkBox1.Text = "Detect dark stamps";
+            this.checkBox1.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.checkBox1.UseVisualStyleBackColor = true;
+            this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
+            // 
             // Pipeline
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1221, 876);
+            this.Controls.Add(this.checkBox1);
             this.Controls.Add(this.okCropping);
             this.Controls.Add(this.cropComboBox);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.okScaling);
             this.Controls.Add(this.setScaling);
             this.Controls.Add(this.label3);
-            this.Controls.Add(this.okSpacing);
-            this.Controls.Add(this.setSpacing);
-            this.Controls.Add(this.label2);
             this.Controls.Add(this.okPixels);
             this.Controls.Add(this.currentOutputFolder);
             this.Controls.Add(this.outputFolderButton);
@@ -302,15 +281,13 @@ namespace ScanMate
         private System.Windows.Forms.Button outputFolderButton;
         private System.Windows.Forms.TextBox currentOutputFolder;
         private System.Windows.Forms.Button okPixels;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox setSpacing;
-        private System.Windows.Forms.Button okSpacing;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.TextBox setScaling;
         private System.Windows.Forms.Button okScaling;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.ComboBox cropComboBox;
         private System.Windows.Forms.Button okCropping;
+        private System.Windows.Forms.CheckBox checkBox1;
     }
 }
 

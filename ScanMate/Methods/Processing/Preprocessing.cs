@@ -6,31 +6,12 @@ using System.Threading.Tasks;
 using System.Drawing;
 
 using System.Diagnostics;
+using ScanMate;
 namespace ScanMate.Methods.Processing
 {
-    class Mat<T>
-    {
-        public T[,] Data { get; set; }
-        public int Rows { get; }
-        public int Cols { get; }
-
-        public Mat(int rows, int cols)
-        {
-            Rows = rows;
-            Cols = cols;
-            Data = new T[rows, cols];
-        }
-
-        public T this[int row, int col]
-        {
-            get => Data[row, col];
-            set => Data[row, col] = value;
-        }
-    }
     public class Preprocessing
     {
         static Stopwatch sw3 = new Stopwatch();
-
 
         public /*Tuple<*/byte[,]/*,byte>*/ preProcess(Color[,] inputImage)
         {
@@ -46,7 +27,7 @@ namespace ScanMate.Methods.Processing
             sw3.Restart();
             processImage = medianImageAndShade.Item1;
             byte shade = medianImageAndShade.Item2;
-            processImage = thresholdImage(processImage);
+            processImage = thresholdImage(processImage, shade);
             Console.WriteLine("{0} Threshold", ((double)sw3.ElapsedMilliseconds / 1000).ToString());
             sw3.Stop();
             return /*Tuple.Create(*/processImage/*, shade)*/;
@@ -190,86 +171,6 @@ namespace ScanMate.Methods.Processing
             return Tuple.Create(dst, averageByte);
         }
 
-
-
-        //static Tuple<byte[,], byte> MedianFilter2(byte[,] inputImage)
-        //{
-        //    int m = inputImage.GetLength(0);
-        //    int n = inputImage.GetLength(1);
-        //    byte[,] result = new byte[m, n];
-
-        //    // Median kernel radius
-        //    int r = 2;
-
-        //    // Initialize kernel histogram H and column histograms h1...n
-        //    int[] kernelHistogram = new int[256];
-        //    int[,] columnHistograms = new int[n, 256];
-
-        //    // Initialization
-        //    for (int i = 0; i < r; i++)
-        //    {
-        //        for (int j = 0; j < n; j++)
-        //        {
-        //            byte pixel = inputImage[i, j];
-        //            columnHistograms[j, pixel]++;
-        //            kernelHistogram[pixel]++;
-        //        }
-        //    }
-
-        //    // Process each pixel
-        //    for (int i = 0; i < m; i++)
-        //    {
-        //        for (int j = 0; j < n; j++)
-        //        {
-        //            // Update column histograms
-        //            if (i - r >= 0)
-        //            {
-        //                byte oldPixel = inputImage[i - r, j];
-        //                columnHistograms[j, oldPixel]--;
-        //            }
-
-        //            if (i + r < m)
-        //            {
-        //                byte newPixel = inputImage[i + r, j];
-        //                columnHistograms[j, newPixel]++;
-        //            }
-
-        //            // Update kernel histogram
-        //            if (j - r - 1 >= 0)
-        //            {
-        //                for (int k = 0; k < 256; k++)
-        //                {
-        //                    kernelHistogram[k] -= columnHistograms[j - r - 1, k];
-        //                }
-        //            }
-
-        //            if (j + r < n)
-        //            {
-        //                for (int k = 0; k < 256; k++)
-        //                {
-        //                    kernelHistogram[k] += columnHistograms[j + r, k];
-        //                }
-        //            }
-
-        //            // Compute median
-        //            result[i, j] = (byte)GetMedian(kernelHistogram);
-        //        }
-        //    }
-
-        //    return Tuple.Create(result, (byte)255);
-        //}
-
-        //static int GetMedian(int[] histogram)
-        //{
-        //    int sum = 0;
-        //    for (int i = 0; i < 256; i++)
-        //    {
-        //        sum += histogram[i];
-        //        if (sum > 0.5)
-        //            return i;
-        //    }
-        //    return 0; // Should never reach here
-        //}
         private byte[,] convertToGrayscale(Color[,] inputImage)
         {
             // create temporary grayscale image of the same size as input, with a single channel
@@ -380,16 +281,18 @@ namespace ScanMate.Methods.Processing
             return Tuple.Create(resultImage, (byte)averageShade);
         }
 
-        private byte[,] thresholdImage(byte[,] inputImage)
+        private byte[,] thresholdImage(byte[,] inputImage, byte shade)
         {
+            Console.WriteLine("SHADE{0}", shade);
             byte low = 0;           //+// parameterize
             byte high = 255;        //+//
+            byte contrastBoost = ScanMate.Pipeline.Variables.ContrastCorrection ? (byte)5 : (byte)0;
 
             for (int y = 0; y < inputImage.GetLength(1); y++)
             {
                 for (int x = 0; x < inputImage.GetLength(0); x++)
                 {
-                    if (inputImage[x, y] <= 90)
+                    if (inputImage[x, y] <= 100 - ((100 - shade) / 6 + contrastBoost))
                         inputImage[x, y] = low;
                     else inputImage[x, y] = high;
                 }
