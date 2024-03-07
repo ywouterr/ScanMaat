@@ -42,14 +42,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ScanMate.exe" size="51200">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ScanMate.exe" size="52224">
       <assemblyIdentity name="ScanMate" version="1.0.0.0" publicKeyToken="880357BCCCEA50AC" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>8IlrlkT0LiXbSpiHWG5xBbuKvnqKc79HFTnsSkEQ4Tc=</dsig:DigestValue>
+        <dsig:DigestValue>rkq5y9TdWRNDt/qYhKAJ4/yL7B3A/buOqxAw6iB40oU=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>

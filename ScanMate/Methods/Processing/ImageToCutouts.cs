@@ -21,7 +21,7 @@ namespace ScanMate
         List<Contour> innerContours = new List<Contour>();
         private static byte[,] workingImage;
 
-        public static Tuple<List<Color[,]>, List<Point>> process(Bitmap image)
+        public static List<Tuple<Color[,], Point>> process(Bitmap image)
         {
 
             // create array to speed-up operations (Bitmap functions are very slow)
@@ -55,13 +55,13 @@ namespace ScanMate
             // in one step deskew found stamps and cluster closeby stamps
             Pipeline orderStamps = new Pipeline();
             var groupSpecifics = orderStamps.divAndConqRegions(outerContours, colorImage, labelImage);//, shade);
-            List<Color[,]> leveledStamps = groupSpecifics.Item1;
-            List<Point> topLeftCoords = groupSpecifics.Item2;
+            //List<Color[,]> leveledStamps = groupSpecifics.Item1;
+            //List<Point> topLeftCoords = groupSpecifics.Item2;
 
             Console.WriteLine("Deskewing: {0} seconds elapsed", ((double)sw.ElapsedMilliseconds / 1000).ToString());
             sw.Stop();
 
-            return Tuple.Create(leveledStamps, topLeftCoords);
+            return groupSpecifics;// Tuple.Create(leveledStamps, topLeftCoords);
         }
     }
 }

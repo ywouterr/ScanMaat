@@ -204,31 +204,33 @@ namespace ScanMate
                         Bitmap resized = new Bitmap(incoming, new Size(Convert.ToInt32(incoming.Width / Variables.ScalingFact), Convert.ToInt32(incoming.Height / Variables.ScalingFact)));
 
                         var stampsAndCoord = ImageToCutouts.process(resized);
-                        List<Color[,]> processedStamps = stampsAndCoord.Item1;
-                        List<Point> topLefts = stampsAndCoord.Item2;
+                        //List<Color[,]> processedStamps = stampsAndCoord.Item1;
+                        //List<Point> topLefts = stampsAndCoord.Item2;
                         Console.WriteLine("{0} is done processing.", imagePath);
 
                         string outputDirectory = setOutputFolder();
                         Bitmap totalScan = new Bitmap(incoming.Size.Width, incoming.Size.Height);
-                
-                        for (int i = 0; i < processedStamps.Count; i++)
+
+                        for (int i = 0; i < stampsAndCoord.Count; i++)
                         {
-                            int w = processedStamps[i].GetLength(0) + 20;
-                            int h = processedStamps[i].GetLength(1) + 20;
+                            Color[,] processedStamp = stampsAndCoord[i].Item1;
+                            Point topLeft = stampsAndCoord[i].Item2;
+                            int w = processedStamp.GetLength(0) + 20;
+                            int h = processedStamp.GetLength(1) + 20;
                             Bitmap saveOutput = new Bitmap(w, h);
 
                             // copy array to output Bitmap
                             for (int x = 0; x < w - 20; x++)             // loop over columns
                                 for (int y = 0; y < h - 20; y++)         // loop over rows
                                 {
-                                    Color newColor = Color.FromArgb(processedStamps[i][x, y].R, processedStamps[i][x, y].G, processedStamps[i][x, y].B);
+                                    Color newColor = Color.FromArgb(processedStamp[x, y].R, processedStamp[x, y].G, processedStamp[x, y].B);
                                     //only modify below row for gray/color
                                     //Color newColor = Color.FromArgb(workingImage[x, y], workingImage[x, y], workingImage[x, y]);
                                     //outputImage.SetPixel(x, y, newColor);                  // set the pixel color at coordinate (x,y)
                                     saveOutput.SetPixel(x + 10, y + 10, newColor);
                                     lock (locker)
                                     {
-                                        totalScan.SetPixel(x + topLefts[i].X, y + topLefts[i].Y, newColor);
+                                        totalScan.SetPixel(x + topLeft.X, y + topLeft.Y, newColor);
                                     }
                                 }
 

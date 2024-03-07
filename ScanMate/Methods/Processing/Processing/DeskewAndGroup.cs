@@ -19,11 +19,11 @@ namespace ScanMate
         Color[,] colorResult;
         List<Tuple<Contour, Color[,]>> adjustedStamps = new List<Tuple<Contour, Color[,]>>();
         List<List<int>> grouping = new List<List<int>>();
-        List<Color[,]> groupedStamps = new List<Color[,]>();
+        List<Tuple<Color[,], Point>> groupedStamps = new List<Tuple<Color[,], Point>>();
         List<Contour> innerContours;    // used to select top HT candidates
         ImageSpecific htAid = new ImageSpecific();
 
-        public Tuple<List<Color[,]>,List<Point>> divAndConqRegions(List<Contour> outerContours, Color[,] oG_Image, sbyte[,] labelImage)
+        public List<Tuple<Color[,], Point>> divAndConqRegions(List<Contour> outerContours, Color[,] oG_Image, sbyte[,] labelImage)
         {
             sw2.Start();
             int wOG, hOG;
@@ -103,6 +103,11 @@ namespace ScanMate
             List<int> doneStamps = new List<int>();
             List<Point> leftTopCoords = new List<Point>();
 
+            // collect deskewing data first, so the stamps can be deskewed in parallel
+            //deskew(Contour c, byte[,] stamp, double angle, List<int> ids, Color[,] colorImage, sbyte[,] labelImage)
+            //add later: Color[,] colorImage, byte[,] stamp, sbyte[,] labeliImage
+            List<Tuple< Tuple<Contour, double, List<int>>, Point>> deskewQueue = new List<Tuple<Tuple<Contour, double, List<int>>, Point>>();
+
             foreach (List<int> l in grouping)
             {
                 if (!doneStamps.Contains(l[0]))
@@ -131,27 +136,54 @@ namespace ScanMate
                         sw2.Restart();
 
                         // deskew using the labels
-                        Color[,] unifiedResult = HT(Cont2Image(unifiedOuterContour[0], wOG, hOG), wOG/4, hOG/4, unifiedOuterContour[0], indexToLabelId, oG_Image, labelImage);
-                        groupedStamps.Add(unifiedResult);
-                        leftTopCoords.Add(new Point(unifiedOuterContour[0].minX, unifiedOuterContour[0].minY));
-
-
+                        //Color[,] unifiedResult =
+                        Tuple<Contour, double, List<int>> deskewData = HT(Cont2Image(unifiedOuterContour[0], wOG, hOG), wOG/4, hOG/4, unifiedOuterContour[0], indexToLabelId, oG_Image, labelImage);
+                        deskewQueue.Add(Tuple.Create(deskewData, new Point(unifiedOuterContour[0].minX, unifiedOuterContour[0].minY)));
+                        //groupedStamps.Add(unifiedResult);
+                        //leftTopCoords.Add(new Point(unifiedOuterContour[0].minX, unifiedOuterContour[0].minY));
                     }
                     else
                         //single stamp
                     {
                         Console.WriteLine("-----------------------");
                         Console.WriteLine("Single stamp");
-                        Color[,] result = HT(Cont2Image(outerContours[l[0]], wOG, hOG), wOG/4, hOG/4, outerContours[l[0]], indexToLabelId, oG_Image, labelImage);
-                        groupedStamps.Add(result);
-                        leftTopCoords.Add(new Point(outerContours[l[0]].minX, outerContours[l[0]].minY));
+                        Tuple<Contour, double, List<int>> deskewData = HT(Cont2Image(outerContours[l[0]], wOG, hOG), wOG/4, hOG/4, outerContours[l[0]], indexToLabelId, oG_Image, labelImage);
+                        //groupedStamps.Add(result);
+                        deskewQueue.Add(Tuple.Create(deskewData, new Point(outerContours[l[0]].minX, outerContours[l[0]].minY)));
+                        //leftTopCoords.Add(new Point(outerContours[l[0]].minX, outerContours[l[0]].minY));
                         sw2.Restart();
                     }
                     doneStamps.AddRange(l);
                 }
             }
+            sw2.Restart();
+            //deskew the stamps here
 
-            return Tuple.Create(groupedStamps, leftTopCoords);
+            int maxDegreeOfParallelism = Environment.ProcessorCount; // Set to the number of processor cores by default
+
+            // Create ParallelOptions object with max degree of parallelism
+            ParallelOptions options = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = 2//maxDegreeOfParallelism / 2
+            };
+
+            Parallel.ForEach(deskewQueue, options, item =>
+            {
+                Tuple<Contour, double, List<int>> deskewInfo = item.Item1;
+                Color[,] result = deskew(deskewInfo.Item1, wOG, hOG, deskewInfo.Item2, deskewInfo.Item3, oG_Image, labelImage);
+                lock (groupedStamps)
+                {
+                    groupedStamps.Add(Tuple.Create(result, item.Item2));
+                }
+            });
+            Console.WriteLine("Deskewing in parallel took: {0} seconds", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
+
+
+
+            //groupedStamps.Add(unifiedResult);
+
+
+            return groupedStamps;//Tuple.Create(groupedStamps, leftTopCoords);
         }
 
         byte[,] unifyAndDilateGroup(sbyte[,] labelImage, List<int> labels)
@@ -189,7 +221,7 @@ namespace ScanMate
             return output;
         }
 
-        public Color[,] HT(byte[,] stamp, int m, int n, Contour c, List<int> ids, Color[,] colImage, sbyte[,] labelImage)//, byte shade)
+        public Tuple<Contour, double, List<int>> HT(byte[,] stamp, int m, int n, Contour c, List<int> ids, Color[,] colImage, sbyte[,] labelImage)//, byte shade)
         {
             Console.WriteLine("starting HT with {0} ids", ids.Count);
             int x = stamp.GetLength(0) / 2;
@@ -367,8 +399,8 @@ namespace ScanMate
 
             // pass labelImageS in stead of labelImage
             if (weightedAvg > 2 || weightedAvg < -2)
-                return deskew(c, stamp, weightedAvg, ids, colImage, labelImage);//, shade);
-            else return deskew(c, stamp, 0, ids, colImage, labelImage);//, shade);// stamp;
+                return Tuple.Create(c, weightedAvg, ids);//deskew(c, stamp, weightedAvg, ids, colImage, labelImage);//, shade);
+            else return Tuple.Create(c, 0.0, ids); //deskew(c, stamp, 0, ids, colImage, labelImage);//, shade);// stamp;
         }
 
         private byte[,] Cont2Image(Contour c, int w, int h)
@@ -491,11 +523,11 @@ namespace ScanMate
 
             return resultImage;
         }
-        private Color[,] deskew(Contour c, byte[,] stamp, double angle, List<int> ids, Color[,] colorImage, sbyte[,] labelImage)
+        private Color[,] deskew(Contour c, int w, int h, double angle, List<int> ids, Color[,] colorImage, sbyte[,] labelImage)
         {
             Console.WriteLine("Starting deskewing for contour {0}", c.id);
-            int w = stamp.GetLength(0);
-            int h = stamp.GetLength(1);
+            //int w = stamp.GetLength(0);
+            //int h = stamp.GetLength(1);
             Color[,] result = new Color[w, h];
 
             int minX = int.MaxValue;
