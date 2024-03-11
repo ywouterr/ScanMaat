@@ -8,6 +8,8 @@ using ScanMate.Methods.Processing.Processing;
 using ScanMate.Domain;
 using System.Diagnostics;
 using ScanMate.Methods.Processing;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 
 namespace ScanMate
 {
@@ -23,16 +25,45 @@ namespace ScanMate
 
         public static List<Tuple<Color[,], Point>> process(Bitmap image)
         {
+            sw.Start();
 
             // create array to speed-up operations (Bitmap functions are very slow)
+            //Color[,] colorImage;
+            //colorImage = new Color[image.Size.Width, image.Size.Height]; 
+
+            //// copy input Bitmap to array            
+            //for (int x = 0; x < image.Size.Width; x++)
+            //    for (int y = 0; y < image.Size.Height; y++)   
+            //        colorImage[x, y] = image.GetPixel(x, y);
+
             Color[,] colorImage;
-            colorImage = new Color[image.Size.Width, image.Size.Height]; 
+            colorImage = new Color[image.Width, image.Height];
 
-            // copy input Bitmap to array            
-            for (int x = 0; x < image.Size.Width; x++)
-                for (int y = 0; y < image.Size.Height; y++)   
-                    colorImage[x, y] = image.GetPixel(x, y);
+            BitmapData bmpData = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            unsafe
+            {
+                int* ptr = (int*)bmpData.Scan0;
 
+                for (int y = 0; y < image.Height; y++)
+                {
+                    for (int x = 0; x < image.Width; x++)
+                    {
+                        int pixelValue = ptr[y * bmpData.Width + x];
+                        colorImage[x, y] = Color.FromArgb(
+                            (pixelValue >> 24) & 0xFF, // Alpha
+                            (pixelValue >> 16) & 0xFF, // Red
+                            (pixelValue >> 8) & 0xFF,  // Green
+                            pixelValue & 0xFF          // Blue
+                        );
+                    }
+                }
+            }
+
+            image.UnlockBits(bmpData);
+
+
+
+            Console.WriteLine("Copying bm to array {0}", sw.ElapsedMilliseconds / 1000);
             sw.Restart();
 
             // preprocessing

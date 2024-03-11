@@ -106,7 +106,7 @@ namespace ScanMate
             // collect deskewing data first, so the stamps can be deskewed in parallel
             //deskew(Contour c, byte[,] stamp, double angle, List<int> ids, Color[,] colorImage, sbyte[,] labelImage)
             //add later: Color[,] colorImage, byte[,] stamp, sbyte[,] labeliImage
-            List<Tuple< Tuple<Contour, double, List<int>>, Point>> deskewQueue = new List<Tuple<Tuple<Contour, double, List<int>>, Point>>();
+            List<Tuple<Contour, double, List<int>>> deskewQueue = new List<Tuple<Contour, double, List<int>>>();
 
             foreach (List<int> l in grouping)
             {
@@ -135,12 +135,8 @@ namespace ScanMate
                         Console.WriteLine("Unifying {0} stamps took: {1} seconds", l.Count, ((double)sw2.ElapsedMilliseconds / 1000).ToString());
                         sw2.Restart();
 
-                        // deskew using the labels
-                        //Color[,] unifiedResult =
                         Tuple<Contour, double, List<int>> deskewData = HT(Cont2Image(unifiedOuterContour[0], wOG, hOG), wOG/4, hOG/4, unifiedOuterContour[0], indexToLabelId, oG_Image, labelImage);
-                        deskewQueue.Add(Tuple.Create(deskewData, new Point(unifiedOuterContour[0].minX, unifiedOuterContour[0].minY)));
-                        //groupedStamps.Add(unifiedResult);
-                        //leftTopCoords.Add(new Point(unifiedOuterContour[0].minX, unifiedOuterContour[0].minY));
+                        deskewQueue.Add(deskewData);
                     }
                     else
                         //single stamp
@@ -148,9 +144,7 @@ namespace ScanMate
                         Console.WriteLine("-----------------------");
                         Console.WriteLine("Single stamp");
                         Tuple<Contour, double, List<int>> deskewData = HT(Cont2Image(outerContours[l[0]], wOG, hOG), wOG/4, hOG/4, outerContours[l[0]], indexToLabelId, oG_Image, labelImage);
-                        //groupedStamps.Add(result);
-                        deskewQueue.Add(Tuple.Create(deskewData, new Point(outerContours[l[0]].minX, outerContours[l[0]].minY)));
-                        //leftTopCoords.Add(new Point(outerContours[l[0]].minX, outerContours[l[0]].minY));
+                        deskewQueue.Add(deskewData);
                         sw2.Restart();
                     }
                     doneStamps.AddRange(l);
@@ -159,21 +153,22 @@ namespace ScanMate
             sw2.Restart();
             //deskew the stamps here
 
-            int maxDegreeOfParallelism = Environment.ProcessorCount; // Set to the number of processor cores by default
+            int maxDegreeOfParallelism = (int)Math.Floor(Environment.ProcessorCount * 0.25); // Set to the number of processor cores by default
 
             // Create ParallelOptions object with max degree of parallelism
             ParallelOptions options = new ParallelOptions
             {
-                MaxDegreeOfParallelism = 2//maxDegreeOfParallelism / 2
+                MaxDegreeOfParallelism = maxDegreeOfParallelism 
             };
 
-            Parallel.ForEach(deskewQueue, options, item =>
+            Console.WriteLine("Parallel {0}", maxDegreeOfParallelism);
+
+            Parallel.ForEach(deskewQueue, options, deskewItem =>
             {
-                Tuple<Contour, double, List<int>> deskewInfo = item.Item1;
-                Color[,] result = deskew(deskewInfo.Item1, wOG, hOG, deskewInfo.Item2, deskewInfo.Item3, oG_Image, labelImage);
+                Color[,] result = deskew(deskewItem.Item1, wOG, hOG, deskewItem.Item2, deskewItem.Item3, oG_Image, labelImage);
                 lock (groupedStamps)
                 {
-                    groupedStamps.Add(Tuple.Create(result, item.Item2));
+                    groupedStamps.Add(Tuple.Create(result, new Point(deskewItem.Item1.minX, deskewItem.Item1.minY)));
                 }
             });
             Console.WriteLine("Deskewing in parallel took: {0} seconds", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
@@ -599,12 +594,12 @@ namespace ScanMate
                         }
                     }
                 }
-            }
-
             c.minX = minX;
             c.maxX = maxX;
             c.minY = minY;
             c.maxY = maxY;
+            }
+
 
             int width = maxX - minX;
             int height = maxY - minY;

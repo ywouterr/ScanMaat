@@ -40,12 +40,6 @@ namespace ScanMate
             this.outputFolderButton = new System.Windows.Forms.Button();
             this.currentOutputFolder = new System.Windows.Forms.TextBox();
             this.okPixels = new System.Windows.Forms.Button();
-            this.label3 = new System.Windows.Forms.Label();
-            this.setScaling = new System.Windows.Forms.TextBox();
-            this.okScaling = new System.Windows.Forms.Button();
-            this.label4 = new System.Windows.Forms.Label();
-            this.cropComboBox = new System.Windows.Forms.ComboBox();
-            this.okCropping = new System.Windows.Forms.Button();
             this.checkBox1 = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.currentScan)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
@@ -160,67 +154,6 @@ namespace ScanMate
             this.okPixels.UseVisualStyleBackColor = true;
             this.okPixels.Click += new System.EventHandler(this.okPixels_Click);
             // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(38, 787);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(110, 20);
-            this.label3.TabIndex = 15;
-            this.label3.Text = "Scaling factor:";
-            // 
-            // setScaling
-            // 
-            this.setScaling.Location = new System.Drawing.Point(209, 787);
-            this.setScaling.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.setScaling.Name = "setScaling";
-            this.setScaling.Size = new System.Drawing.Size(112, 26);
-            this.setScaling.TabIndex = 16;
-            this.setScaling.Text = "1";
-            this.setScaling.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            // 
-            // okScaling
-            // 
-            this.okScaling.Location = new System.Drawing.Point(328, 784);
-            this.okScaling.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.okScaling.Name = "okScaling";
-            this.okScaling.Size = new System.Drawing.Size(84, 32);
-            this.okScaling.TabIndex = 17;
-            this.okScaling.Text = "Ok";
-            this.okScaling.UseVisualStyleBackColor = true;
-            this.okScaling.Click += new System.EventHandler(this.okScaling_Click);
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(38, 831);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(47, 20);
-            this.label4.TabIndex = 18;
-            this.label4.Text = "Crop:";
-            // 
-            // cropComboBox
-            // 
-            this.cropComboBox.FormattingEnabled = true;
-            this.cropComboBox.Items.AddRange(new object[] {
-            "Original",
-            "A4"});
-            this.cropComboBox.Location = new System.Drawing.Point(209, 828);
-            this.cropComboBox.Name = "cropComboBox";
-            this.cropComboBox.Size = new System.Drawing.Size(112, 28);
-            this.cropComboBox.TabIndex = 19;
-            // 
-            // okCropping
-            // 
-            this.okCropping.Location = new System.Drawing.Point(330, 825);
-            this.okCropping.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.okCropping.Name = "okCropping";
-            this.okCropping.Size = new System.Drawing.Size(84, 32);
-            this.okCropping.TabIndex = 20;
-            this.okCropping.Text = "Ok";
-            this.okCropping.UseVisualStyleBackColor = true;
-            this.okCropping.Click += new System.EventHandler(this.okCropping_Click);
-            // 
             // checkBox1
             // 
             this.checkBox1.Appearance = System.Windows.Forms.Appearance.Button;
@@ -240,12 +173,6 @@ namespace ScanMate
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1221, 876);
             this.Controls.Add(this.checkBox1);
-            this.Controls.Add(this.okCropping);
-            this.Controls.Add(this.cropComboBox);
-            this.Controls.Add(this.label4);
-            this.Controls.Add(this.okScaling);
-            this.Controls.Add(this.setScaling);
-            this.Controls.Add(this.label3);
             this.Controls.Add(this.okPixels);
             this.Controls.Add(this.currentOutputFolder);
             this.Controls.Add(this.outputFolderButton);
@@ -281,12 +208,6 @@ namespace ScanMate
         private System.Windows.Forms.Button outputFolderButton;
         private System.Windows.Forms.TextBox currentOutputFolder;
         private System.Windows.Forms.Button okPixels;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.TextBox setScaling;
-        private System.Windows.Forms.Button okScaling;
-        private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.ComboBox cropComboBox;
-        private System.Windows.Forms.Button okCropping;
         private System.Windows.Forms.CheckBox checkBox1;
     }
 }

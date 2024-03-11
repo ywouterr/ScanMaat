@@ -33,31 +33,13 @@ namespace ScanMate
 
         public class Variables
         {
-            private static int clusterDist = 20;
-            private static int clusterSpac = 20;
-            private static int scalingFact = 1;
-            private static bool cropping = false;
+            private static int clusterDist = 40;
             private static bool darkMode = false;
 
             public static int ClustDist
             {
                 get { return clusterDist; }
                 set { clusterDist = value; }
-            }
-            public static int ClustSpac
-            {
-                get { return clusterSpac; }
-                set { clusterSpac = value; }
-            }
-            public static int ScalingFact
-            {
-                get { return scalingFact; }
-                set { scalingFact = value; }
-            }
-            public static bool Cropping
-            {
-                get { return cropping; }
-                set { cropping = value; }
             }
             public static bool ContrastCorrection
             {
@@ -179,15 +161,12 @@ namespace ScanMate
                     lock (locker)
                     {
                         Bitmap incoming = new Bitmap(inputFiles.Process());
-                        if (Variables.Cropping)
-                        {
-                            int left = (int)((incoming.Width / 9.1) * 1.6);
-                            int right = incoming.Width - left;
-                            int top = (right - left) / 30;
-                            int bottom = top * 23;
-                            Rectangle cropArea = new Rectangle(left, top, right, bottom);
-                            incoming = cropImage(incoming, cropArea);
-                        }
+                        int left = 0;
+                        int right = incoming.Width;
+                        int top = incoming.Height/30;
+                        int bottom = incoming.Height - incoming.Height / 30 - 1;
+                        Rectangle cropArea = new Rectangle(left, top, right, bottom);
+                        incoming = cropImage(incoming, cropArea);
                         Console.WriteLine("{0} is being processed.", e.FullPath);// localCopyOfPath);
                         if (currentScan.Image != null) currentScan.Image = null;
 
@@ -198,14 +177,8 @@ namespace ScanMate
                         });
                         Console.WriteLine("incom W factor {0}", incoming.Width);
                         Console.WriteLine("incom H factor {0}", incoming.Height);
-                        Console.WriteLine("Scaling factor {0}", Variables.ScalingFact);
 
-                        // processing step
-                        Bitmap resized = new Bitmap(incoming, new Size(Convert.ToInt32(incoming.Width / Variables.ScalingFact), Convert.ToInt32(incoming.Height / Variables.ScalingFact)));
-
-                        var stampsAndCoord = ImageToCutouts.process(resized);
-                        //List<Color[,]> processedStamps = stampsAndCoord.Item1;
-                        //List<Point> topLefts = stampsAndCoord.Item2;
+                        var stampsAndCoord = ImageToCutouts.process(incoming);
                         Console.WriteLine("{0} is done processing.", imagePath);
 
                         string outputDirectory = setOutputFolder();
@@ -220,13 +193,10 @@ namespace ScanMate
                             Bitmap saveOutput = new Bitmap(w, h);
 
                             // copy array to output Bitmap
-                            for (int x = 0; x < w - 20; x++)             // loop over columns
-                                for (int y = 0; y < h - 20; y++)         // loop over rows
+                            for (int x = 0; x < w - 20; x++)
+                                for (int y = 0; y < h - 20; y++) 
                                 {
                                     Color newColor = Color.FromArgb(processedStamp[x, y].R, processedStamp[x, y].G, processedStamp[x, y].B);
-                                    //only modify below row for gray/color
-                                    //Color newColor = Color.FromArgb(workingImage[x, y], workingImage[x, y], workingImage[x, y]);
-                                    //outputImage.SetPixel(x, y, newColor);                  // set the pixel color at coordinate (x,y)
                                     saveOutput.SetPixel(x + 10, y + 10, newColor);
                                     lock (locker)
                                     {
@@ -332,25 +302,6 @@ namespace ScanMate
                 else MessageBox.Show("Please specify a number using { 0123456789 } only.");
             }
             else Variables.ClustDist = 20;
-        }
-
-        private void okScaling_Click(object sender, EventArgs e)
-        {
-            if (setScaling.Text != "")
-            {
-                int number;
-                if (int.TryParse(setScaling.Text, out number))
-                {
-                    Variables.ScalingFact = int.Parse(setScaling.Text);
-                }
-                else MessageBox.Show("Please specify a number using { 0123456789 } only.");
-            }
-            else Variables.ScalingFact = 1;
-        }
-
-        private void okCropping_Click(object sender, EventArgs e)
-        {
-            Variables.Cropping = (cropComboBox.Items[cropComboBox.SelectedIndex].ToString() != "A4");
         }
 
         private void currentInputFolder_TextChanged(object sender, EventArgs e)
