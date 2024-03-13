@@ -90,7 +90,7 @@ namespace ScanMate
             this.setCluster.Name = "setCluster";
             this.setCluster.Size = new System.Drawing.Size(112, 26);
             this.setCluster.TabIndex = 5;
-            this.setCluster.Text = "20";
+            this.setCluster.Text = "40";
             this.setCluster.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // label1
