@@ -23,7 +23,7 @@ namespace ScanMate
         List<Contour> innerContours = new List<Contour>();
         private static byte[,] workingImage;
 
-        public static List<Tuple<Color[,], Point>> process(Bitmap image)
+        public static List<Tuple<Color[,], Point, Color[,], byte[,]>> process(Bitmap image)
         {
             sw.Start();
 

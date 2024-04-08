@@ -183,6 +183,7 @@ namespace ScanMate
 
                         string outputDirectory = setOutputFolder();
                         Bitmap totalScan = new Bitmap(incoming.Size.Width, incoming.Size.Height);
+                        Bitmap debuggingOutput = new Bitmap(incoming.Size.Width, incoming.Size.Height);
 
                         for (int i = 0; i < stampsAndCoord.Count; i++)
                         {
@@ -191,6 +192,7 @@ namespace ScanMate
                             int w = processedStamp.GetLength(0) + 20;
                             int h = processedStamp.GetLength(1) + 20;
                             Bitmap saveOutput = new Bitmap(w, h);
+                            Bitmap houghImage = new Bitmap(incoming.Size.Width, incoming.Size.Height);
 
                             // copy array to output Bitmap
                             for (int x = 0; x < w - 20; x++)
@@ -208,7 +210,52 @@ namespace ScanMate
                             string fileLocation = string.Format(outputDirectory + "\\{0}-{1}.jpg", scanNr, i);
                             saveOutput.Save(fileLocation, ImageFormat.Jpeg);
                             saveOutput.Dispose();
+
+                            //debugging
+                            Color[,] debuggingContour = stampsAndCoord[i].Item3;
+                            int ww = debuggingContour.GetLength(0);
+                            int hh = debuggingContour.GetLength(1);
+
+                            // copy array to output Bitmap
+                            for (int x = 0; x < ww; x++)
+                                for (int y = 0; y < hh; y++)
+                                {
+                                    if (debuggingContour[x, y].R == 255) {
+                                        Color newColor = Color.FromArgb(debuggingContour[x, y].R, 0, 0);
+                                        lock (locker)
+                                        {
+                                            debuggingOutput.SetPixel(x, y, newColor);
+                                        }
+                                    }
+                                }
+
+                            byte[,] houghByteArray = stampsAndCoord[i].Item4;
+                            int www = houghByteArray.GetLength(0);
+                            int hhh = houghByteArray.GetLength(1);
+                            byte pixelvalue;
+
+                            // copy array to output Bitmap
+                            for (int x = 0; x < www; x++)
+                                for (int y = 0; y < hhh; y++)
+                                {
+                                    pixelvalue = houghByteArray[x, y];
+                                        Color newColor = Color.FromArgb(pixelvalue, pixelvalue, pixelvalue);
+                                        lock (locker)
+                                        {
+                                            houghImage.SetPixel(x, y, newColor);
+                                        }
+                                }
+                            //save output image
+                            string houghLocation = string.Format(outputDirectory + "\\{0}-{1}-ht.jpg", scanNr, i);
+                            houghImage.Save(houghLocation, ImageFormat.Jpeg);
+                            houghImage.Dispose();
+
                         }
+
+                        //save output image
+                        string debuggingLocation = string.Format(outputDirectory + "\\{0}-debug.jpg", scanNr);
+                        debuggingOutput.Save(debuggingLocation, ImageFormat.Jpeg);
+                        debuggingOutput.Dispose();
 
                         scanNr++;
 
