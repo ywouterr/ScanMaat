@@ -227,8 +227,8 @@ namespace ScanMate
         public Tuple<Contour, double, List<int>, byte[,]> HT(byte[,] stamp, int m, int n, Contour c, List<int> ids, Color[,] colImage, sbyte[,] labelImage)//, byte shade)
         {
             Console.WriteLine("starting HT with {0} ids", ids.Count);
-            int xCentre = stamp.GetLength(0) / 2;
-            int yCentre = stamp.GetLength(1) / 2;
+            int xCentre = stamp.GetLength(0);
+            int yCentre = stamp.GetLength(1);
             double theta_step = Math.PI / m;
             double[] thetaArray = new double[m];
             for (int i = 0; i < m; i++)
@@ -236,7 +236,7 @@ namespace ScanMate
                 thetaArray[i] = theta_step * i;
             }
             double radial_step = Math.Sqrt(stamp.GetLength(0) * stamp.GetLength(0) + stamp.GetLength(1) * stamp.GetLength(1)) / n;
-            int j_map = n/2;
+            int j_map = n;
 
             int[,] accumulator = new int[m, n];
 
@@ -374,7 +374,7 @@ namespace ScanMate
                         break;
                     }
                 }
-                if (top3.Count > 3) break;
+                if (top3.Count > 4) break;
             }
 
 
@@ -391,30 +391,73 @@ namespace ScanMate
                 offAngles.Add(angle);
             }
 
-
+            double weightedX = 0;
+            double weightedY = 0;
             double weightedAvg = 0;
             int divider = 0;
             for (int i = offAngles.Count; i > 0; i--)
             {
                 double temp = offAngles[offAngles.Count - i];
-                if (temp > 45) temp -= 90;
-                weightedAvg += temp * i;
-                divider += i;
+                (double, double) vector = DegreesToVector(temp);
+                weightedX += vector.Item1;
+                weightedY += vector.Item2;
+                //if (temp > 45) temp -= 90;
+                //weightedAvg += temp * i;
+                //divider += i;
             }
+
+            double magnitude = Math.Sqrt(weightedX * weightedX + weightedY * weightedY);
+            double xUnit = weightedX / magnitude;
+            double yUnit = weightedY / magnitude;
+
+            double degree = VectorToDegrees(xUnit, yUnit);
 
             Console.WriteLine("{0} Calculating the average angle {1}", ((double)sw2.ElapsedMilliseconds / 1000).ToString(), weightedAvg);
             sw2.Restart();
 
-            Console.WriteLine("weightedAvg {0} Divider {1}", weightedAvg, divider);
+            Console.WriteLine("weightedAvg {0} Divider {1}", degree, divider);
 
             weightedAvg /= Math.Max(1, divider);
             //if (weightedAvg > 45) weightedAvg -= 90;
 
             // pass labelImageS in stead of labelImage
             //if (weightedAvg > 2 || weightedAvg < -2)
-                return Tuple.Create(c, weightedAvg, ids, accumByte);//deskew(c, stamp, weightedAvg, ids, colImage, labelImage);//, shade);
+                return Tuple.Create(c, degree, ids, accumByte);//deskew(c, stamp, weightedAvg, ids, colImage, labelImage);//, shade);
             //else return Tuple.Create(c, 0.0, ids, debugByte); //deskew(c, stamp, 0, ids, colImage, labelImage);//, shade);// stamp;
         }
+
+        public static (double, double) DegreesToVector(double angleDeg)
+        {
+            // Convert degrees to radians
+            double angleRad = angleDeg * Math.PI / 180.0;
+            // Calculate components
+            double x = Math.Cos(angleRad);
+            double y = Math.Sin(angleRad);
+            // Normalize vector
+            double magnitude = Math.Sqrt(x * x + y * y);
+            double xUnit = x / magnitude;
+            double yUnit = y / magnitude;
+            return (xUnit, yUnit);
+        }
+
+        public static double VectorToDegrees(double x, double y)
+        {
+            // Calculate angle in radians
+            double angleRad = Math.Atan2(y, x);
+            // Convert radians to degrees
+            double angleDeg = angleRad * 180.0 / Math.PI;
+            // Ensure angle is within range 0 to 360 degrees
+            if (angleDeg < 0)
+            {
+                angleDeg += 360;
+            }
+            else if (angleDeg >= 360)
+            {
+                angleDeg -= 360;
+            }
+            return angleDeg;
+        }
+
 
         private byte[,] Cont2Image(Contour c, int w, int h)
         {
@@ -501,8 +544,8 @@ namespace ScanMate
                             acc[q, w] > acc[Math.Max(q - 1, 0), w] &&
                             acc[q, w] > acc[Math.Min(q + 1, acc.GetLength(0) - 1), w] &&
                             acc[q, w] > acc[Math.Max(q - 1, 0), Math.Min(w + 1, acc.GetLength(1) - 1)] &&
-                            acc[q, w] > acc[q, Math.Min(w + 1, acc.GetLength(1))] &&
-                            acc[q, w] > acc[Math.Min(q + 1, acc.GetLength(1)), Math.Min(w + 1, acc.GetLength(1))]
+                            acc[q, w] > acc[q, Math.Min(w + 1, acc.GetLength(1) - 1)] &&
+                            acc[q, w] > acc[Math.Min(q + 1, acc.GetLength(0) - 1), Math.Min(w + 1, acc.GetLength(1) - 1)]
                             ) suppressed[q, w] = acc[q, w];
                     }
                 }
