@@ -227,11 +227,16 @@ namespace ScanMate
         public Tuple<Contour, double, List<int>, byte[,]> HT(byte[,] stamp, int m, int n, Contour c, List<int> ids, Color[,] colImage, sbyte[,] labelImage)//, byte shade)
         {
             Console.WriteLine("starting HT with {0} ids", ids.Count);
-            int x = stamp.GetLength(0) / 2;
-            int y = stamp.GetLength(1) / 2;
+            int xCentre = stamp.GetLength(0) / 2;
+            int yCentre = stamp.GetLength(1) / 2;
             double theta_step = Math.PI / m;
+            double[] thetaArray = new double[m];
+            for (int i = 0; i < m; i++)
+            {
+                thetaArray[i] = theta_step * i;
+            }
             double radial_step = Math.Sqrt(stamp.GetLength(0) * stamp.GetLength(0) + stamp.GetLength(1) * stamp.GetLength(1)) / n;
-            int j_map = n / 2;
+            int j_map = n/2;
 
             int[,] accumulator = new int[m, n];
 
@@ -240,12 +245,12 @@ namespace ScanMate
             //fill HT array to discover salient outer lines of the object
             foreach(Point p in c.coordinates)
             {
-                int x_ref = p.X - x;
-                int y_ref = p.Y - y;
+                int x_ref = p.X - xCentre;
+                int y_ref = p.Y - yCentre;
             
                 for (int i = 0; i < m; i++)
                 {
-                    double t = theta_step * i;
+                    double t = thetaArray[i];
                     double r = x_ref * Math.Cos(t) + y_ref * Math.Sin(t);
                     int j = j_map + (int)Math.Round(r / radial_step);
                     if (j >= 0 && j < n)
@@ -309,9 +314,9 @@ namespace ScanMate
             List<Tuple<int, Point>> highscores = new List<Tuple<int, Point>>();
             List<Point> top3 = new List<Point>();
 
-            byte[,] accumByte = new byte[m, n];
+            byte[,] accumByte = new byte[suppressed.GetLength(0), suppressed.GetLength(1)];
 
-            byte[,] debugByte = new byte[m, n];
+            byte[,] debugByte = new byte[suppressed.GetLength(0), suppressed.GetLength(1)];
             // scale accumulator to byte size
             for (int q = 0; q < suppressed.GetLength(0); q++)
             {
@@ -406,9 +411,9 @@ namespace ScanMate
             //if (weightedAvg > 45) weightedAvg -= 90;
 
             // pass labelImageS in stead of labelImage
-            if (weightedAvg > 2 || weightedAvg < -2)
-                return Tuple.Create(c, weightedAvg, ids, debugByte);//deskew(c, stamp, weightedAvg, ids, colImage, labelImage);//, shade);
-            else return Tuple.Create(c, 0.0, ids, debugByte); //deskew(c, stamp, 0, ids, colImage, labelImage);//, shade);// stamp;
+            //if (weightedAvg > 2 || weightedAvg < -2)
+                return Tuple.Create(c, weightedAvg, ids, accumByte);//deskew(c, stamp, weightedAvg, ids, colImage, labelImage);//, shade);
+            //else return Tuple.Create(c, 0.0, ids, debugByte); //deskew(c, stamp, 0, ids, colImage, labelImage);//, shade);// stamp;
         }
 
         private byte[,] Cont2Image(Contour c, int w, int h)
