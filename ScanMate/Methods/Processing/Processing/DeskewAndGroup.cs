@@ -358,7 +358,7 @@ namespace ScanMate
                         break;
                     }
                 }
-                if (top3.Count > 3) break;
+                if (top3.Count > 1) break;
             }
 
 
@@ -376,13 +376,32 @@ namespace ScanMate
 
             double weightedAvg = 0;
             int divider = 0;
+            //for (int i = offAngles.Count; i > 0; i--)
+            //{
+            //    double temp = offAngles[offAngles.Count - i];
+            //    if (temp > 45) temp -= 90;
+            //    weightedAvg += temp * i;
+            //    divider += i;
+            //}
+            double weightedX = 0;
+            double weightedY = 0;
             for (int i = offAngles.Count; i > 0; i--)
             {
                 double temp = offAngles[offAngles.Count - i];
-                if (temp > 45) temp -= 90;
-                weightedAvg += temp * i;
-                divider += i;
+                (double, double) vector = DegreesToVector(temp);
+                weightedX += vector.Item1;
+                weightedY += vector.Item2;
+                //if (temp > 45) temp -= 90;
+                //weightedAvg += temp * i;
+                //divider += i;
             }
+
+            double magnitude = Math.Sqrt(weightedX * weightedX + weightedY * weightedY);
+            double xUnit = weightedX / magnitude;
+            double yUnit = weightedY / magnitude;
+
+            double degree = VectorToDegrees(xUnit, yUnit);
+            if (degree > 45) degree -= 90;
 
             Console.WriteLine("{0} Calculating the average angle {1}", ((double)sw2.ElapsedMilliseconds / 1000).ToString(), weightedAvg);
             sw2.Restart();
@@ -393,9 +412,9 @@ namespace ScanMate
             //if (weightedAvg > 45) weightedAvg -= 90;
 
             // pass labelImageS in stead of labelImage
-            if (weightedAvg > 2 || weightedAvg < -2)
-                return Tuple.Create(c, weightedAvg, ids);//deskew(c, stamp, weightedAvg, ids, colImage, labelImage);//, shade);
-            else return Tuple.Create(c, 0.0, ids); //deskew(c, stamp, 0, ids, colImage, labelImage);//, shade);// stamp;
+            //if (weightedAvg > 2 || weightedAvg < -2)
+                return Tuple.Create(c, degree, ids);//deskew(c, stamp, weightedAvg, ids, colImage, labelImage);//, shade);
+            //else return Tuple.Create(c, 0.0, ids); //deskew(c, stamp, 0, ids, colImage, labelImage);//, shade);// stamp;
         }
 
         private byte[,] Cont2Image(Contour c, int w, int h)
@@ -407,6 +426,38 @@ namespace ScanMate
             }
 
             return frame;
+        }
+
+        public static (double, double) DegreesToVector(double angleDeg)
+        {
+            // Convert degrees to radians
+            double angleRad = angleDeg * Math.PI / 180.0;
+            // Calculate components
+            double x = Math.Cos(angleRad);
+            double y = Math.Sin(angleRad);
+            // Normalize vector
+            double magnitude = Math.Sqrt(x * x + y * y);
+            double xUnit = x / magnitude;
+            double yUnit = y / magnitude;
+            return (xUnit, yUnit);
+        }
+
+        public static double VectorToDegrees(double x, double y)
+        {
+            // Calculate angle in radians
+            double angleRad = Math.Atan2(y, x);
+            // Convert radians to degrees
+            double angleDeg = angleRad * 180.0 / Math.PI;
+            // Ensure angle is within range 0 to 360 degrees
+            if (angleDeg < 0)
+            {
+                angleDeg += 360;
+            }
+            else if (angleDeg >= 360)
+            {
+                angleDeg -= 360;
+            }
+            return angleDeg;
         }
 
         private Color[,] Label2Stamp(sbyte[,] labelImage, Color[,] originalImage, Contour c)
@@ -483,8 +534,8 @@ namespace ScanMate
                             acc[q, w] > acc[Math.Max(q - 1, 0), w] &&
                             acc[q, w] > acc[Math.Min(q + 1, acc.GetLength(0) - 1), w] &&
                             acc[q, w] > acc[Math.Max(q - 1, 0), Math.Min(w + 1, acc.GetLength(1) - 1)] &&
-                            acc[q, w] > acc[q, Math.Min(w + 1, acc.GetLength(1))] &&
-                            acc[q, w] > acc[Math.Min(q + 1, acc.GetLength(1)), Math.Min(w + 1, acc.GetLength(1))]
+                            acc[q, w] > acc[q, Math.Min(w + 1, acc.GetLength(1) - 1)] &&
+                            acc[q, w] > acc[Math.Min(q + 1, acc.GetLength(1) - 1), Math.Min(w + 1, acc.GetLength(1) - 1)]
                             ) suppressed[q, w] = acc[q, w];
                     }
                 }
