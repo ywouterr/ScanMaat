@@ -11,10 +11,77 @@ using System.Diagnostics;
 
 namespace ScanMate
 {
-    
-
     public partial class Pipeline : Form
     {
+        public class Cell : IComparable<Cell>
+        {
+            public int X { get; }
+            public int Y { get; }
+            public int Value { get; }
+
+            public Cell(int x, int y, int value)
+            {
+                X = x;
+                Y = y;
+                Value = value;
+            }
+
+            public int CompareTo(Cell other)
+            {
+                return Value.CompareTo(other.Value);
+            }
+        }
+
+        public static List<Cell> Sort2DArray(int[,] array)
+        // selection is equal to amount of lines to be considered
+        // 1 to four is logical as this agrees with sides of a stamp
+        // four should give more precision as inaccuracies are spread out
+        {
+            int rows = array.GetLength(0);
+            int cols = array.GetLength(1);
+            List<Cell> sortedHT = new List<Cell>();
+
+            // Flatten the 2D array into a list of cells
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < cols; j++)
+                {
+                    sortedHT.Add(new Cell(i, j, array[i, j]));
+                }
+            }
+
+            // Sort the cells based on their values
+            sortedHT.Sort((x, y) => y.Value.CompareTo(x.Value));
+
+            return sortedHT;
+        }
+
+        public List<Point> SelectHighestPoints(List<Cell> sortedHT, double radius, int selectionSize)
+        {
+            List<Point> selectedPoints = new List<Point>();
+            foreach(Cell item in sortedHT)
+            {
+                Console.WriteLine("Item value is {0}", item.Value);
+                Boolean tooClose = false;
+                foreach(Point selected in selectedPoints)
+                {
+                    double distance = Math.Sqrt((item.X - selected.X) * (item.X - selected.X) + (item.Y - selected.Y) * (item.Y - selected.Y));
+                    if (distance <= radius)
+                    {
+                        tooClose = true;
+                        break;
+                    }
+                }
+                if (!tooClose)
+                {
+                    selectedPoints.Add(new Point(item.X, item.Y));
+                    Console.WriteLine("Ädded");
+                }
+                if (selectedPoints.Count == selectionSize) break;
+            }
+            return selectedPoints;
+        }
+
         static Stopwatch sw2 = new Stopwatch();
         Color[,] colorResult;
         List<Tuple<Contour, Color[,]>> adjustedStamps = new List<Tuple<Contour, Color[,]>>();
@@ -173,12 +240,7 @@ namespace ScanMate
             });
             Console.WriteLine("Deskewing in parallel took: {0} seconds", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
 
-
-
-            //groupedStamps.Add(unifiedResult);
-
-
-            return groupedStamps;//Tuple.Create(groupedStamps, leftTopCoords);
+            return groupedStamps;
         }
 
         byte[,] unifyAndDilateGroup(sbyte[,] labelImage, List<int> labels)
@@ -218,7 +280,6 @@ namespace ScanMate
 
         public Tuple<Contour, double, List<int>> HT(byte[,] stamp, int m, int n, Contour c, List<int> ids, Color[,] colImage, sbyte[,] labelImage)//, byte shade)
         {
-            Console.WriteLine("starting HT with {0} ids", ids.Count);
             int x = stamp.GetLength(0) / 2;
             int y = stamp.GetLength(1) / 2;
             double theta_step = Math.PI / m;
@@ -243,178 +304,54 @@ namespace ScanMate
                     if (j >= 0 && j < n)
                     {
                         accumulator[i, j]++;
-                        accumulator[i, Math.Max(0, j - 1)]++;
-                        accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)]++;
-                        if (accumulator[i, Math.Max(0, j - 1)] > highest) highest = accumulator[i, Math.Max(0, j - 1)];
                         if (accumulator[i, j] > highest) highest = accumulator[i, j];
-                        if (accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)] > highest) highest = accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)];
                     }
 
                 }
             }
-            //Define the number of threads to use
-            //int numThreads = Environment.ProcessorCount;
-            //Console.WriteLine("number of processors on machine {0}", numThreads);
-
-            //// Parallelize the outer loop using Parallel.For
-            //Parallel.For(0, stamp.GetLength(1), new ParallelOptions { MaxDegreeOfParallelism = numThreads }, v =>
-            //{
-            //    for (int u = 0; u < stamp.GetLength(0); u++)
-            //    {
-            //        if (stamp[u, v] > 0)
-            //        {
-            //            int x_ref = u - x;
-            //            int y_ref = v - y;
-            //            for (int i = 0; i < m; i++)
-            //            {
-            //                double t = theta_step * i;
-            //                double r = x_ref * Math.Cos(t) + y_ref * Math.Sin(t);
-            //                int j = j_map + (int)Math.Round(r / radial_step);
-            //                if (j >= 0 && j < n)
-            //                {
-            //                    // Ensure atomicity when incrementing accumulator values
-            //                    // to prevent race conditions
-            //                    lock (accumulator)
-            //                    {
-            //                        accumulator[i, j]++;
-            //                        accumulator[i, Math.Max(0, j - 1)]++;
-            //                        accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)]++;
-            //                        if (accumulator[i, Math.Max(0, j - 1)] > highest) highest = accumulator[i, Math.Max(0, j - 1)];
-            //                        if (accumulator[i, j] > highest) highest = accumulator[i, j];
-            //                        if (accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)] > highest) highest = accumulator[i, Math.Min(accumulator.GetLength(1) - 1, j + 1)];
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-            //});
 
             Console.WriteLine("HT Array filled in {0} seconds", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
             sw2.Restart();
 
-            int[,] suppressed = findPeaks(accumulator);
-
-            accumulator = suppressed;
-
-            //List<Tuple<double, int, int>> L = new List<Tuple<double, int, int>>();
-
-            List<Tuple<int, Point>> highscores = new List<Tuple<int, Point>>();
-            List<Point> top3 = new List<Point>();
-
-            byte[,] accumByte = new byte[m, n];
-            // scale accumulator to byte size
-            for (int q = 0; q < accumulator.GetLength(0); q++)
-            {
-                for (int w = 0; w < accumulator.GetLength(1); w++)
-                {
-                    accumByte[q, w] = (byte)(((double)accumulator[q, w] / highest) * 255);
-                    highscores.Add(Tuple.Create(accumulator[q, w], new Point(q, w))); // while scaling, add info to ranking list
-                }
-            }
-            // only keep significant points
-            for (int q = 0; q < accumByte.GetLength(0); q++)
-            {
-                for (int w = 0; w < accumByte.GetLength(1); w++)
-                {
-                    if (accumByte[q, w] < 150) accumByte[q, w] = 0;
-                    else accumByte[q, w] = 255;
-                }
-            }
-            Console.WriteLine("{0} Filtering significant points", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
-            sw2.Restart();
-
-            // grow points together to form regions
-            for (int grow = 0; grow < 5; grow++)
-            {
-                accumByte = dilateImage(accumByte, false);
-            }
-
-            Console.WriteLine("{0} HT dilation", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
-            sw2.Restart();
-
-            // find the regions
-            innerContours = htAid.getBestHTs(accumByte);
-
-            Console.WriteLine("{0} Inner contours to find regions", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
-            sw2.Restart();
-
-            // sort highscores, biggest first
-            highscores.Sort((s, p) => p.Item1.CompareTo(s.Item1));
-
-            // collect highest points from different regions
-            List<int> undiscoveredRegions = new List<int>();
-            foreach (Contour cont in innerContours)
-            {
-                undiscoveredRegions.Add(cont.id);
-            }
-            foreach (Tuple<int, Point> sp in highscores)
-            {
-                foreach (Contour cont in innerContours)
-                {
-                    if (undiscoveredRegions.Contains(cont.id) && cont.body.Contains(sp.Item2))
-                    {
-                        top3.Add(sp.Item2);
-                        undiscoveredRegions.Remove(cont.id);
-                        break;
-                    }
-                }
-                if (top3.Count > 1) break;
-            }
-
+            List<Cell> sortedHTArray = Sort2DArray(accumulator);
+            double radius = 5.0;
+            int selectionSize = 4;
+            List<Point> toppers = SelectHighestPoints(sortedHTArray, radius, selectionSize);
 
             Console.WriteLine("{0} Prominent point collection", ((double)sw2.ElapsedMilliseconds / 1000).ToString());
             sw2.Restart();
 
             List<double> offAngles = new List<double>();
-            // modulo 90 to obtain the common divergence
-            foreach (Point sp in top3)
+            foreach (Point sp in toppers)
             {
-                double angle = (((double)sp.X / m) * 180) % 90;
-                Console.WriteLine("angle {0}", angle);
+                double angle = (((double)sp.X / m) * 180);
                 offAngles.Add(angle);
             }
 
-            double weightedAvg = 0;
-            int divider = 0;
-            //for (int i = offAngles.Count; i > 0; i--)
-            //{
-            //    double temp = offAngles[offAngles.Count - i];
-            //    if (temp > 45) temp -= 90;
-            //    weightedAvg += temp * i;
-            //    divider += i;
-            //}
-            double weightedX = 0;
-            double weightedY = 0;
-            for (int i = offAngles.Count; i > 0; i--)
+            double averagedAngle = offAngles[0] % 90;
+
+            int[] ninetyAngles = { -180, -90, 0, 90, 180 };
+            double allowedMargin = 2.0;
+
+            for (int i = 1; i < offAngles.Count; i++)
             {
-                double temp = offAngles[offAngles.Count - i];
-                (double, double) vector = DegreesToVector(temp);
-                weightedX += vector.Item1;
-                weightedY += vector.Item2;
-                //if (temp > 45) temp -= 90;
-                //weightedAvg += temp * i;
-                //divider += i;
+                double consideredAngle = offAngles[i];
+                for (int angle = 0; angle < ninetyAngles.Length; angle++)
+                {
+                    double correctedAngle = consideredAngle + ninetyAngles[angle];
+                    if (correctedAngle <= averagedAngle + allowedMargin && correctedAngle >= averagedAngle - allowedMargin)
+                    {
+                        averagedAngle = (averagedAngle + correctedAngle) / 2;
+                        break;
+                    }
+                }
             }
 
-            double magnitude = Math.Sqrt(weightedX * weightedX + weightedY * weightedY);
-            double xUnit = weightedX / magnitude;
-            double yUnit = weightedY / magnitude;
+            if (Math.Abs(averagedAngle - 90) < Math.Abs(averagedAngle)) averagedAngle -= 90;
 
-            double degree = VectorToDegrees(xUnit, yUnit);
-            if (degree > 45) degree -= 90;
-
-            Console.WriteLine("{0} Calculating the average angle {1}", ((double)sw2.ElapsedMilliseconds / 1000).ToString(), weightedAvg);
             sw2.Restart();
 
-            Console.WriteLine("weightedAvg {0} Divider {1}", weightedAvg, divider);
-
-            weightedAvg /= Math.Max(1, divider);
-            //if (weightedAvg > 45) weightedAvg -= 90;
-
-            // pass labelImageS in stead of labelImage
-            //if (weightedAvg > 2 || weightedAvg < -2)
-                return Tuple.Create(c, degree, ids);//deskew(c, stamp, weightedAvg, ids, colImage, labelImage);//, shade);
-            //else return Tuple.Create(c, 0.0, ids); //deskew(c, stamp, 0, ids, colImage, labelImage);//, shade);// stamp;
+            return Tuple.Create(c, averagedAngle, ids);
         }
 
         private byte[,] Cont2Image(Contour c, int w, int h)
