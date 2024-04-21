@@ -61,7 +61,6 @@ namespace ScanMate
             List<Point> selectedPoints = new List<Point>();
             foreach(Cell item in sortedHT)
             {
-                Console.WriteLine("Item value is {0}", item.Value);
                 Boolean tooClose = false;
                 foreach(Point selected in selectedPoints)
                 {
@@ -75,7 +74,6 @@ namespace ScanMate
                 if (!tooClose)
                 {
                     selectedPoints.Add(new Point(item.X, item.Y));
-                    Console.WriteLine("Ädded");
                 }
                 if (selectedPoints.Count == selectionSize) break;
             }

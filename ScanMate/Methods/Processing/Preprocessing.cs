@@ -286,7 +286,7 @@ namespace ScanMate.Methods.Processing
             Console.WriteLine("SHADE{0}", shade);
             byte low = 0;           //+// parameterize
             byte high = 255;        //+//
-            byte contrastBoost = ScanMate.Pipeline.Variables.ContrastCorrection ? (byte)5 : (byte)0;
+            byte contrastBoost = ScanMate.Pipeline.Variables.ContrastCorrection ? (byte)10 : (byte)0;
 
             for (int y = 0; y < inputImage.GetLength(1); y++)
             {

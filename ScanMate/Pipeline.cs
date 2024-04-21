@@ -76,7 +76,10 @@ namespace ScanMate
                 else inputDir = "C:\\Users\\Rob\\Pictures";
             }
             currentInputFolder.Text = inputDir;
-            
+
+            setOutputFolder();
+
+
 
             var fileSystemWatcher = new FileSystemWatcher(@inputDir)
             {
@@ -181,7 +184,7 @@ namespace ScanMate
                         var stampsAndCoord = ImageToCutouts.process(incoming);
                         Console.WriteLine("{0} is done processing.", imagePath);
 
-                        string outputDirectory = setOutputFolder();
+                        string outputDirectory = Directory.GetCurrentDirectory();//setOutputFolder();
                         Bitmap totalScan = new Bitmap(incoming.Size.Width, incoming.Size.Height);
 
                         for (int i = 0; i < stampsAndCoord.Count; i++)
@@ -236,22 +239,18 @@ namespace ScanMate
             }
         }
 
-        private string setOutputFolder()
+        private void setOutputFolder()
         {
-            string outputDir = "";
-            if (currentOutputFolder.Text != "")
+            string outputDir = currentOutputFolder.Text;
+            if (currentOutputFolder.Text != "" && System.IO.Directory.Exists(outputDir))
             {
-                outputDir = currentOutputFolder.Text;
-                if (System.IO.Directory.Exists(outputDir))
-                {
-                    Directory.SetCurrentDirectory(@outputDir);
-                }
-                else MessageBox.Show("Folder specified not valid");
+                Directory.SetCurrentDirectory(@outputDir);
             }
             else if (System.IO.Directory.Exists("C:\\Users\\Rob\\Pictures\\uitgesneden"))
             {
+                Console.WriteLine("It exists");
                 outputDir = "C:\\Users\\Rob\\Pictures\\uitgesneden";
-                Directory.SetCurrentDirectory(@outputDir);
+                Directory.SetCurrentDirectory(outputDir);
                 currentOutputFolder.Text = outputDir;
             }
             else if (System.IO.Directory.Exists("C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden"))
@@ -261,7 +260,7 @@ namespace ScanMate
                 currentOutputFolder.Text = outputDir;
             }
             else MessageBox.Show("No access to tried paths\n\'C:\\Users\\Rob\\Pictures\\uitgesneden\' and \'C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden\'");
-            return outputDir;
+
         }
 
         private void inputFolderButton_Click(object sender, EventArgs e)
