@@ -3,7 +3,6 @@ C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Debug\ScanM
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Debug\ScanMate.application
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Debug\ScanMate.exe
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Debug\ScanMate.pdb
-C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.csproj.AssemblyReference.cache
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.Pipeline.resources
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.Properties.Resources.resources
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.Resource1.resources
@@ -14,3 +13,4 @@ C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanM
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.application
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.exe
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.pdb
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.csproj.AssemblyReference.cache

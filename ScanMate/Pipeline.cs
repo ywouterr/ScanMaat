@@ -79,16 +79,18 @@ namespace ScanMate
 
             setOutputFolder();
 
+            string[] filters = { "*.jpg", "*.jpeg", "*.bmp", "*.png" };
 
-
-            var fileSystemWatcher = new FileSystemWatcher(@inputDir)
+            foreach (string f in filters)
             {
-                Filter = "*.jpg",
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
-                EnableRaisingEvents = true
-            };
-
-            fileSystemWatcher.Created += new FileSystemEventHandler(OnFileCreated);
+                var fSW = new FileSystemWatcher(@inputDir)
+                {
+                    Filter = f,
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
+                    EnableRaisingEvents = true
+                };
+                fSW.Created += new FileSystemEventHandler(OnFileCreated);
+            }
         }
 
         private Task AttemptToOpenAsync(string filepath)
