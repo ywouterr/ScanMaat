@@ -93,36 +93,82 @@ namespace ScanMate
             }
         }
 
-        private Task AttemptToOpenAsync(string filepath)
+        //private Task AttemptToOpenAsync(string filepath)
+        //{
+        //    return Task.Factory.StartNew(() =>
+        //    {
+        //        bool available = false;
+
+        //        while (!available)
+        //        {
+        //            available = IsAvailable(filepath);
+        //            Console.WriteLine($"IsAvailable: {available}");
+
+        //            if (!available)
+        //            {
+        //                Thread.Sleep(100);
+        //            }
+        //        }
+
+        //        return available;
+        //    });
+        //}
+        private async Task AttemptToOpenAsync(string filepath)
         {
-            return Task.Factory.StartNew(() =>
+            int maxAttempts = 10;  // Set a maximum number of attempts to avoid infinite loops.
+            int attempt = 0;
+            bool available = false;
+
+            while (!available && attempt < maxAttempts)
             {
-                bool available = false;
+                available = IsAvailable(filepath);
+                Console.WriteLine($"IsAvailable: {available}");
 
-                while (!available)
+                if (!available)
                 {
-                    available = IsAvailable(filepath);
-                    Console.WriteLine($"IsAvailable: {available}");
-
-                    if (!available)
-                    {
-                        Thread.Sleep(100);
-                    }
+                    attempt++;
+                    await Task.Delay(500);  // Increase delay to give more time for writing completion.
                 }
+            }
 
-                return available;
-            });
+            if (!available)
+            {
+                throw new IOException($"File '{filepath}' is still unavailable after multiple attempts.");
+            }
         }
+
+
+        //private bool IsAvailable(string filepath)
+        //{
+        //    bool result = false;
+
+        //    try
+        //    {
+        //        using (FileStream fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.None))
+        //        {
+        //            result = true;
+        //        }
+        //    }
+        //    catch (FileNotFoundException ex)
+        //    {
+        //        Console.WriteLine(ex.Message);
+        //    }
+        //    catch (IOException ex)
+        //    {
+        //        Console.WriteLine(ex.Message);
+        //    }
+
+        //    return result;
+        //}
 
         private bool IsAvailable(string filepath)
         {
-            bool result = false;
-
             try
             {
-                using (FileStream fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.None))
+                // Attempt to open with FileShare.ReadWrite to avoid locking issues
+                using (FileStream fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
-                    result = true;
+                    return true;
                 }
             }
             catch (FileNotFoundException ex)
@@ -134,14 +180,144 @@ namespace ScanMate
                 Console.WriteLine(ex.Message);
             }
 
-            return result;
+            return false;
         }
+
 
         private static Bitmap cropImage(Bitmap img, Rectangle cropArea)
         {
             Bitmap bmpImage = new Bitmap(img);
             return bmpImage.Clone(cropArea, bmpImage.PixelFormat);
         }
+
+        //private async void OnFileCreated(object sender, FileSystemEventArgs e)
+        //{
+        //    sw.Restart();
+        //    string imagePath = e.FullPath;
+        //    inputFiles.AddToQ(imagePath);
+        //    Console.WriteLine("{0} is queued.", e.FullPath);
+
+        //    int number = 0;
+        //    if (!int.TryParse(setCluster.Text.Trim(), out number))
+        //    {
+        //        MessageBox.Show("Please enter a valid number for Clustering.");
+        //        setCluster.Text = "20";
+        //    }
+        //    else
+        //    {
+        //        while (inputFiles.Inspect() != imagePath) Thread.Sleep(100);
+        //        try
+        //        {
+        //            //string localCopyOfPath = CreateLocalCopy(e.FullPath);
+        //            await AttemptToOpenAsync(imagePath);
+        //            lock (locker)
+        //            {
+        //                Bitmap incoming = new Bitmap(inputFiles.Process());
+        //                int left = 0;
+        //                int right = incoming.Width;
+        //                int top = incoming.Height/30;
+        //                int bottom = incoming.Height - incoming.Height / 30 - 1;
+        //                Rectangle cropArea = new Rectangle(left, top, right, bottom);
+        //                incoming = cropImage(incoming, cropArea);
+        //                Console.WriteLine("{0} is being processed.", e.FullPath);// localCopyOfPath);
+        //                if (currentScan.Image != null) currentScan.Image = null;
+
+        //                currentScan.Invoke((Action) delegate ()
+        //                {
+        //                    currentScan.Image = (Image)new Bitmap(e.FullPath);
+        //                    currPathText.Text = imagePath;
+        //                });
+        //                Console.WriteLine("incom W factor {0}", incoming.Width);
+        //                Console.WriteLine("incom H factor {0}", incoming.Height);
+
+        //                var stampsAndCoord = ImageToCutouts.process(incoming);
+        //                Console.WriteLine("{0} is done processing.", imagePath);
+
+        //                string outputDirectory = Directory.GetCurrentDirectory();//setOutputFolder();
+        //                Bitmap totalScan = new Bitmap(incoming.Size.Width, incoming.Size.Height);
+
+        //                for (int i = 0; i < stampsAndCoord.Count; i++)
+        //                {
+        //                    Color[,] processedStamp = stampsAndCoord[i].Item1;
+        //                    Point topLeft = stampsAndCoord[i].Item2;
+        //                    int w = processedStamp.GetLength(0) + 20;
+        //                    int h = processedStamp.GetLength(1) + 20;
+        //                    Bitmap saveOutput = new Bitmap(w, h);
+
+        //                    // copy array to output Bitmap
+        //                    for (int x = 0; x < w - 20; x++)
+        //                        for (int y = 0; y < h - 20; y++) 
+        //                        {
+        //                            Color newColor = Color.FromArgb(processedStamp[x, y].R, processedStamp[x, y].G, processedStamp[x, y].B);
+        //                            saveOutput.SetPixel(x + 10, y + 10, newColor);
+        //                            lock (locker)
+        //                            {
+        //                                totalScan.SetPixel(x + topLeft.X, y + topLeft.Y, newColor);
+        //                            }
+        //                        }
+
+        //                    //save output image
+        //                    string fileLocation = string.Format(outputDirectory + "\\{0}-{1}.jpg", scanNr, i);
+        //                    saveOutput.Save(fileLocation, ImageFormat.Jpeg);
+        //                    saveOutput.Dispose();
+        //                }
+
+        //                scanNr++;
+
+        //                sw.Stop();
+        //                Console.WriteLine("Runtime: {0} seconds", sw.Elapsed.TotalSeconds.ToString());
+
+        //                if (pictureBox2.Image != null && totalScan != null)
+        //                {
+        //                    pictureBox2.Image.Dispose();
+        //                    pictureBox2.Image = null;
+        //                    pictureBox2.Image = totalScan;
+        //                }
+        //                else pictureBox2.Image = totalScan;
+        //            }
+        //        }
+        //        catch(FileNotFoundException)
+        //        {
+        //            MessageBox.Show("Something went wrong while accessing the file.");
+        //        }
+        //        catch(Exception ex)
+        //        {
+        //            MessageBox.Show("ERROR: {0}", ex.Message);
+        //        }
+
+        //    }
+        //}
+
+        private async Task WaitUntilFileIsAvailableAsync(string filepath)
+        {
+            int delay = 200; // Start with a 200ms delay
+            int maxAttempts = 50;  // Maximum number of attempts
+            int attempt = 0;
+
+            while (attempt < maxAttempts)
+            {
+                try
+                {
+                    using (FileStream fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.None))
+                    {
+                        return; // File is available
+                    }
+                }
+                catch (IOException ex)
+                {
+                    // Log and continue retrying
+                    Console.WriteLine($"File access attempt {attempt + 1} failed: {ex.Message}");
+                }
+
+                // Increase the delay exponentially to provide more time with each failed attempt
+                await Task.Delay(delay);
+                delay = Math.Min(delay * 2, 5000); // Cap the delay at 5 seconds
+                attempt++;
+            }
+
+            throw new IOException($"File '{filepath}' is still unavailable after multiple attempts.");
+        }
+
 
         private async void OnFileCreated(object sender, FileSystemEventArgs e)
         {
@@ -158,88 +334,100 @@ namespace ScanMate
             }
             else
             {
-                while (inputFiles.Inspect() != imagePath) Thread.Sleep(100);
+                // Delay before attempting to access the file, to give time for writing completion
+                await Task.Delay(1000); // Add a 1-second delay
+
                 try
                 {
-                    //string localCopyOfPath = CreateLocalCopy(e.FullPath);
-                    await AttemptToOpenAsync(imagePath);
+                    // Ensure that the file is fully available before attempting to use it
+                    await WaitUntilFileIsAvailableAsync(imagePath);
+
                     lock (locker)
                     {
-                        Bitmap incoming = new Bitmap(inputFiles.Process());
-                        int left = 0;
-                        int right = incoming.Width;
-                        int top = incoming.Height/30;
-                        int bottom = incoming.Height - incoming.Height / 30 - 1;
-                        Rectangle cropArea = new Rectangle(left, top, right, bottom);
-                        incoming = cropImage(incoming, cropArea);
-                        Console.WriteLine("{0} is being processed.", e.FullPath);// localCopyOfPath);
-                        if (currentScan.Image != null) currentScan.Image = null;
-
-                        currentScan.Invoke((Action) delegate ()
+                        using (Bitmap incoming = new Bitmap(inputFiles.Process()))
                         {
-                            currentScan.Image = (Image)new Bitmap(e.FullPath);
-                            currPathText.Text = imagePath;
-                        });
-                        Console.WriteLine("incom W factor {0}", incoming.Width);
-                        Console.WriteLine("incom H factor {0}", incoming.Height);
+                            int left = 0;
+                            int right = incoming.Width;
+                            int top = incoming.Height / 30;
+                            int bottom = incoming.Height - incoming.Height / 30 - 1;
+                            Rectangle cropArea = new Rectangle(left, top, right, bottom);
+                            Bitmap cropped = cropImage(incoming, cropArea);
 
-                        var stampsAndCoord = ImageToCutouts.process(incoming);
-                        Console.WriteLine("{0} is done processing.", imagePath);
+                            Console.WriteLine("{0} is being processed.", e.FullPath);
 
-                        string outputDirectory = Directory.GetCurrentDirectory();//setOutputFolder();
-                        Bitmap totalScan = new Bitmap(incoming.Size.Width, incoming.Size.Height);
+                            if (currentScan.Image != null)
+                            {
+                                currentScan.Image = null;
+                            }
 
-                        for (int i = 0; i < stampsAndCoord.Count; i++)
-                        {
-                            Color[,] processedStamp = stampsAndCoord[i].Item1;
-                            Point topLeft = stampsAndCoord[i].Item2;
-                            int w = processedStamp.GetLength(0) + 20;
-                            int h = processedStamp.GetLength(1) + 20;
-                            Bitmap saveOutput = new Bitmap(w, h);
+                            currentScan.Invoke((Action)delegate ()
+                            {
+                                currentScan.Image = cropped;
+                                currPathText.Text = imagePath;
+                            });
 
-                            // copy array to output Bitmap
-                            for (int x = 0; x < w - 20; x++)
-                                for (int y = 0; y < h - 20; y++) 
+                            Console.WriteLine("incom W factor {0}", incoming.Width);
+                            Console.WriteLine("incom H factor {0}", incoming.Height);
+
+                            var stampsAndCoord = ImageToCutouts.process(incoming);
+                            Console.WriteLine("{0} is done processing.", imagePath);
+
+                            // Saving output image
+                            string outputDirectory = Directory.GetCurrentDirectory();
+                            Bitmap totalScan = new Bitmap(incoming.Size.Width, incoming.Size.Height);
+
+                            for (int i = 0; i < stampsAndCoord.Count; i++)
+                            {
+                                Color[,] processedStamp = stampsAndCoord[i].Item1;
+                                Point topLeft = stampsAndCoord[i].Item2;
+                                int w = processedStamp.GetLength(0) + 20;
+                                int h = processedStamp.GetLength(1) + 20;
+                                Bitmap saveOutput = new Bitmap(w, h);
+
+                                for (int x = 0; x < w - 20; x++)
                                 {
-                                    Color newColor = Color.FromArgb(processedStamp[x, y].R, processedStamp[x, y].G, processedStamp[x, y].B);
-                                    saveOutput.SetPixel(x + 10, y + 10, newColor);
-                                    lock (locker)
+                                    for (int y = 0; y < h - 20; y++)
                                     {
-                                        totalScan.SetPixel(x + topLeft.X, y + topLeft.Y, newColor);
+                                        Color newColor = Color.FromArgb(processedStamp[x, y].R, processedStamp[x, y].G, processedStamp[x, y].B);
+                                        saveOutput.SetPixel(x + 10, y + 10, newColor);
+                                        lock (locker)
+                                        {
+                                            totalScan.SetPixel(x + topLeft.X, y + topLeft.Y, newColor);
+                                        }
                                     }
                                 }
 
-                            //save output image
-                            string fileLocation = string.Format(outputDirectory + "\\{0}-{1}.jpg", scanNr, i);
-                            saveOutput.Save(fileLocation, ImageFormat.Jpeg);
-                            saveOutput.Dispose();
-                        }
+                                string fileLocation = string.Format(outputDirectory + "\\{0}-{1}.jpg", scanNr, i);
+                                saveOutput.Save(fileLocation, ImageFormat.Jpeg);
+                                saveOutput.Dispose();
+                            }
 
-                        scanNr++;
+                            scanNr++;
 
-                        sw.Stop();
-                        Console.WriteLine("Runtime: {0} seconds", sw.Elapsed.TotalSeconds.ToString());
+                            sw.Stop();
+                            Console.WriteLine("Runtime: {0} seconds", sw.Elapsed.TotalSeconds.ToString());
 
-                        if (pictureBox2.Image != null && totalScan != null)
-                        {
-                            pictureBox2.Image.Dispose();
-                            pictureBox2.Image = null;
+                            if (pictureBox2.Image != null && totalScan != null)
+                            {
+                                pictureBox2.Image.Dispose();
+                                pictureBox2.Image = null;
+                            }
                             pictureBox2.Image = totalScan;
                         }
-                        else pictureBox2.Image = totalScan;
                     }
                 }
-                catch(FileNotFoundException)
+                catch (FileNotFoundException)
                 {
                     MessageBox.Show("Something went wrong while accessing the file.");
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    MessageBox.Show("ERROR: {0}", ex.Message);
+                    MessageBox.Show($"ERROR: {ex.Message}");
                 }
-                
             }
         }
+
+
 
         private void setOutputFolder()
         {
