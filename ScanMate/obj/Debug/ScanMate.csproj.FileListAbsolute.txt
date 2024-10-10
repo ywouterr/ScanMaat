@@ -14,3 +14,4 @@ C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanM
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.exe
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.pdb
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.csproj.AssemblyReference.cache
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Debug\ScanMate.csproj.SuggestedBindingRedirects.cache
