@@ -29,6 +29,8 @@ namespace ScanMate
         public inputQueue inputFiles = new inputQueue();
         Stopwatch sw = new Stopwatch();
         int scanNr = 0;
+        private FileSystemWatcher fSW = null;
+
         //static readonly object locker = new object();
 
         public class Variables
@@ -55,6 +57,29 @@ namespace ScanMate
             InitializeComponent();
         }
 
+        private void InitializeFileSystemWatcher(string directory)
+        {
+            if (fSW != null)
+            {
+                // Dispose the previous watcher to prevent multiple event subscriptions
+                fSW.Dispose();
+            }
+
+            fSW = new FileSystemWatcher(directory)
+            {
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
+                EnableRaisingEvents = true
+            };
+
+            string[] filters = { "*.jpg", "*.jpeg", "*.bmp", "*.png" };
+            foreach (string f in filters)
+            {
+                fSW.Filter = f;
+                fSW.Created += new FileSystemEventHandler(OnFileCreated);
+            }
+        }
+
+
         private void Pipeline_Load(object sender, EventArgs e)
         {
             string inputDir;
@@ -73,7 +98,7 @@ namespace ScanMate
                     }
                     else inputDir = "C:\\Gebruikers\\Rob\\Afbeeldingen";
                 }
-                else inputDir = "C:\\Users\\Rob\\Pictures";
+                else inputDir = "C:\\Users\\Yannick\\Documents\\Werk\\Scan programma\\ScanMate\\lab"; //"C:\\Users\\Rob\\Pictures";
             }
             currentInputFolder.Text = inputDir;
 
