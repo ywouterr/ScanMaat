@@ -358,7 +358,13 @@ namespace ScanMate
             foreach (Point p in c.coordinates)
             {
                 frame[p.X, p.Y] = 255;
+                Console.WriteLine("{0} {1}",p.X, p.Y);
+                Console.WriteLine(frame.GetLength(0));
+                Console.WriteLine(frame.GetLength(1));
             }
+
+            Console.WriteLine(frame.GetLength(0));
+            Console.WriteLine(frame.GetLength(1));
 
             return frame;
         }

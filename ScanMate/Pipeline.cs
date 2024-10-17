@@ -30,6 +30,8 @@ namespace ScanMate
         Stopwatch sw = new Stopwatch();
         int scanNr = 0;
         //static readonly object locker = new object();
+        private FileSystemWatcher fSW;
+
 
         public class Variables
         {
@@ -57,41 +59,77 @@ namespace ScanMate
 
         private void Pipeline_Load(object sender, EventArgs e)
         {
-            string inputDir;
-            inputDir = "C:\\Users\\Yannick\\Documents\\Werk\\Scan programma\\ScanMate\\lab\\input";
-            if(!System.IO.Directory.Exists(inputDir))
-            {
-                if (!System.IO.Directory.Exists("C:\\Users\\Rob\\Pictures"))
-                {
-                    if (!System.IO.Directory.Exists("C:\\Gebruikers\\Rob\\Afbeeldingen"))
-                    {
-                        if (currentInputFolder.Text != "")
-                        {
-                            inputDir = currentInputFolder.Text;
-                        }
-                        MessageBox.Show("Try specifying input folder by hand");
-                    }
-                    else inputDir = "C:\\Gebruikers\\Rob\\Afbeeldingen";
-                }
-                else inputDir = "C:\\Users\\Rob\\Pictures";
-            }
-            currentInputFolder.Text = inputDir;
-
+            SetInputFolderWatcher(currentInputFolder.Text);
             setOutputFolder();
-
-            string[] filters = { "*.jpg", "*.jpeg", "*.bmp", "*.png" };
-
-            foreach (string f in filters)
-            {
-                var fSW = new FileSystemWatcher(@inputDir)
-                {
-                    Filter = f,
-                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
-                    EnableRaisingEvents = true
-                };
-                fSW.Created += new FileSystemEventHandler(OnFileCreated);
-            }
         }
+
+        // Method to initialize the FileSystemWatcher
+        private void SetInputFolderWatcher(string inputDir)
+        {
+            // Ensure the directory exists
+            if (!System.IO.Directory.Exists(inputDir))
+            {
+                MessageBox.Show("Input directory does not exist. Please select a valid folder.");
+                return;
+            }
+
+            // If the watcher is already set up, stop it
+            if (fSW != null)
+            {
+                fSW.EnableRaisingEvents = false;
+                fSW.Dispose();
+            }
+
+            // Create a new FileSystemWatcher
+            fSW = new FileSystemWatcher(@inputDir)
+            {
+                Filter = "*.*", // Use general filter for now, modify as per your needs
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
+                EnableRaisingEvents = true
+            };
+
+            fSW.Created += new FileSystemEventHandler(OnFileCreated);
+            fSW.EnableRaisingEvents = true;
+        }
+
+
+        //private void Pipeline_Load(object sender, EventArgs e)
+        //{
+        //    string inputDir;
+        //    inputDir = "C:\\Users\\Yannick\\Documents\\Werk\\Scan programma\\ScanMate\\lab\\input";
+        //    if(!System.IO.Directory.Exists(inputDir))
+        //    {
+        //        if (!System.IO.Directory.Exists("C:\\Users\\Rob\\Pictures"))
+        //        {
+        //            if (!System.IO.Directory.Exists("C:\\Gebruikers\\Rob\\Afbeeldingen"))
+        //            {
+        //                if (currentInputFolder.Text != "")
+        //                {
+        //                    inputDir = currentInputFolder.Text;
+        //                }
+        //                MessageBox.Show("Try specifying input folder by hand");
+        //            }
+        //            else inputDir = "C:\\Gebruikers\\Rob\\Afbeeldingen";
+        //        }
+        //        else inputDir = "C:\\Users\\Rob\\Pictures";
+        //    }
+        //    currentInputFolder.Text = inputDir;
+
+        //    setOutputFolder();
+
+        //    string[] filters = { "*.jpg", "*.jpeg", "*.bmp", "*.png" };
+
+        //    foreach (string f in filters)
+        //    {
+        //        var fSW = new FileSystemWatcher(@inputDir)
+        //        {
+        //            Filter = f,
+        //            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
+        //            EnableRaisingEvents = true
+        //        };
+        //        fSW.Created += new FileSystemEventHandler(OnFileCreated);
+        //    }
+        //}
 
         //private Task AttemptToOpenAsync(string filepath)
         //{
@@ -307,29 +345,48 @@ namespace ScanMate
 
 
 
+        //private void setOutputFolder()
+        //{
+        //    string outputDir = currentOutputFolder.Text;
+        //    if (currentOutputFolder.Text != "" && System.IO.Directory.Exists(outputDir))
+        //    {
+        //        Directory.SetCurrentDirectory(@outputDir);
+        //    }
+        //    else if (System.IO.Directory.Exists("C:\\Users\\Rob\\Pictures\\uitgesneden"))
+        //    {
+        //        Console.WriteLine("It exists");
+        //        outputDir = "C:\\Users\\Rob\\Pictures\\uitgesneden";
+        //        Directory.SetCurrentDirectory(outputDir);
+        //        currentOutputFolder.Text = outputDir;
+        //    }
+        //    else if (System.IO.Directory.Exists("C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden"))
+        //    {
+        //        outputDir = "C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden";
+        //        Directory.SetCurrentDirectory(outputDir);
+        //        currentOutputFolder.Text = outputDir;
+        //    }
+        //    else MessageBox.Show("No access to tried paths\n\'C:\\Users\\Rob\\Pictures\\uitgesneden\' and \'C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden\'");
+
+        //}
+
         private void setOutputFolder()
         {
             string outputDir = currentOutputFolder.Text;
-            if (currentOutputFolder.Text != "" && System.IO.Directory.Exists(outputDir))
+            if (!string.IsNullOrEmpty(outputDir) && System.IO.Directory.Exists(outputDir))
             {
-                Directory.SetCurrentDirectory(@outputDir);
-            }
-            else if (System.IO.Directory.Exists("C:\\Users\\Rob\\Pictures\\uitgesneden"))
-            {
-                Console.WriteLine("It exists");
-                outputDir = "C:\\Users\\Rob\\Pictures\\uitgesneden";
                 Directory.SetCurrentDirectory(outputDir);
-                currentOutputFolder.Text = outputDir;
             }
-            else if (System.IO.Directory.Exists("C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden"))
+            else
             {
-                outputDir = "C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden";
-                Directory.SetCurrentDirectory(outputDir);
-                currentOutputFolder.Text = outputDir;
+                MessageBox.Show("Invalid output folder. Please select a valid path.");
             }
-            else MessageBox.Show("No access to tried paths\n\'C:\\Users\\Rob\\Pictures\\uitgesneden\' and \'C:\\Gebruikers\\Rob\\Afbeeldingen\\uitgesneden\'");
-
         }
+
+        private void currentOutputFolder_TextChanged(object sender, EventArgs e)
+        {
+            setOutputFolder();
+        }
+
 
         private void inputFolderButton_Click(object sender, EventArgs e)
         {
@@ -373,7 +430,15 @@ namespace ScanMate
 
         private void currentInputFolder_TextChanged(object sender, EventArgs e)
         {
-
+            string newInputDir = currentInputFolder.Text;
+            if (!string.IsNullOrEmpty(newInputDir) && System.IO.Directory.Exists(newInputDir))
+            {
+                SetInputFolderWatcher(newInputDir);
+            }
+            else
+            {
+                MessageBox.Show("Invalid input folder. Please select a valid path.");
+            }
         }
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
