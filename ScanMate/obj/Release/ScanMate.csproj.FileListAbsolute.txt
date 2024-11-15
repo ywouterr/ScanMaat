@@ -3,6 +3,8 @@ C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Release\Sca
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Release\ScanMate.application
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Release\ScanMate.exe
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\bin\Release\ScanMate.pdb
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Release\ScanMate.csproj.AssemblyReference.cache
+C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Release\ScanMate.csproj.SuggestedBindingRedirects.cache
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Release\ScanMate.Pipeline.resources
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Release\ScanMate.Properties.Resources.resources
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Release\ScanMate.Resource1.resources
@@ -13,5 +15,3 @@ C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Release\Sca
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Release\ScanMate.application
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Release\ScanMate.exe
 C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Release\ScanMate.pdb
-C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Release\ScanMate.csproj.AssemblyReference.cache
-C:\Users\Yannick\Documents\Werk\Scan programma\ScanMate\ScanMate\obj\Release\ScanMate.csproj.SuggestedBindingRedirects.cache

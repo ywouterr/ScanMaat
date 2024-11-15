@@ -357,14 +357,8 @@ namespace ScanMate
             byte[,] frame = new byte[w, h];
             foreach (Point p in c.coordinates)
             {
-                frame[p.X, p.Y] = 255;
-                Console.WriteLine("{0} {1}",p.X, p.Y);
-                Console.WriteLine(frame.GetLength(0));
-                Console.WriteLine(frame.GetLength(1));
+                if(p.X < w && p.Y < h && p.X >= 0 && p.Y >= 0) frame[p.X, p.Y] = 255;
             }
-
-            Console.WriteLine(frame.GetLength(0));
-            Console.WriteLine(frame.GetLength(1));
 
             return frame;
         }
@@ -485,7 +479,10 @@ namespace ScanMate
         }
 
         private byte[,] dilateImage(byte[,] inputImage, bool unification)
+            // used to connect closeby stamps into one cluster with common boundary
         {
+            int imageHeight = inputImage.GetLength(1) - 1;
+            int imageLength = inputImage.GetLength(0) - 1;
             byte[,] resultImage = new byte[inputImage.GetLength(0), inputImage.GetLength(1)];
             int expansion = 1;
             if (unification) expansion = Variables.ClustDist;
@@ -501,8 +498,8 @@ namespace ScanMate
                             resultImage[i, j] = 255;
                             resultImage[i, Math.Max(0, j - e)] = 255;
                             resultImage[Math.Max(0, i - e), j] = 255;
-                            resultImage[Math.Min(resultImage.GetLength(0) - 1, i + e), j] = 255;
-                            resultImage[i, Math.Min(resultImage.GetLength(1) - 1, j + e)] = 255;
+                            resultImage[Math.Min(imageLength, i + e), j] = 255;
+                            resultImage[i, Math.Min(imageHeight, j + e)] = 255;
                         }
                     }
                 }

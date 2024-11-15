@@ -120,7 +120,7 @@ namespace ScanMate
             this.currentInputFolder.Name = "currentInputFolder";
             this.currentInputFolder.Size = new System.Drawing.Size(559, 26);
             this.currentInputFolder.TabIndex = 8;
-            this.currentInputFolder.Text = "C:\\Users\\Yannick\\Documents\\Werk\\Scan programma\\ScanMate\\lab\\input";
+            this.currentInputFolder.Text = "C:\\Users\\Rob\\Pictures\\processed";
             this.currentInputFolder.TextChanged += new System.EventHandler(this.currentInputFolder_TextChanged);
             // 
             // outputFolderButton
@@ -141,7 +141,9 @@ namespace ScanMate
             this.currentOutputFolder.Name = "currentOutputFolder";
             this.currentOutputFolder.Size = new System.Drawing.Size(559, 26);
             this.currentOutputFolder.TabIndex = 10;
-            this.currentOutputFolder.Text = "C:\\Users\\Yannick\\Documents\\Werk\\Scan programma\\ScanMate\\lab\\processed";
+            this.currentOutputFolder.Text = "C:\\Users\\Rob\\Pictures";
+            this.currentOutputFolder.TextChanged += new System.EventHandler(this.currentOutputFolder_TextChanged);
+
             // 
             // okPixels
             // 
